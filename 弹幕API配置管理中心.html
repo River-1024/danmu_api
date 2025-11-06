@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹幕API配置管理中心</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .loading-pulse {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .gradient-border {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            padding: 2px;
+            border-radius: 0.5rem;
+        }
+        
+        .log-line {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .btn-hover {
+            transition: all 0.2s ease;
+        }
+        
+        .btn-hover:hover {
+            transform: scale(1.05);
+        }
+        
+        .input-focus {
+            transition: all 0.3s ease;
+        }
+        
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .config-section {
+            scroll-margin-top: 80px; /* Offset for sticky header */
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .reset-btn {
+            position: absolute;
+            right: 36px;
+            top: 8px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .reset-btn:hover {
+            color: #3b82f6;
+        }
+        
+        /* 自定义复选框样式 */
+        .custom-checkbox {
+            display: none;
+        }
+        
+        .custom-checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 14px;
+            color: #374151;
+        }
+        
+        .checkbox-square {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .custom-checkbox:checked + .custom-checkbox-label .checkbox-square {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .checkbox-icon {
+            display: none;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .custom-checkbox:checked + .custom-checkbox-label .checkbox-icon {
+            display: block;
+        }
+        
+        /* 导航栏活动状态 */
+        .nav-link {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent; /* default border */
+        }
+        
+        .nav-link.active {
+            background-color: #eff6ff;
+            color: #3b82f6;
+            border-left: 3px solid #3b82f6;
+            font-weight: 500;
+        }
+        
+        /* 平滑滚动 */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* 顶部导航按钮的活跃状态 */
+        #header-logs-btn.active {
+            background-color: #dbeafe; /* Tailwind blue-100 */
+            color: #3b82f6; /* Tailwind blue-600 */
+            font-weight: 500;
+        }
+        #header-config-btn.active {
+            background-color: #dbeafe; /* Tailwind blue-100 */
+            color: #3b82f6; /* Tailwind blue-600 */
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-terminal text-2xl text-blue-600"></i>
+                    <h1 class="text-xl font-bold text-gray-900">弹幕API配置管理中心</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="switchView('config')" id="header-config-btn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors btn-hover active">
+                        <i class="fas fa-cog mr-2"></i>环境变量配置
+                    </button>
+                    <button onclick="switchView('logs')" id="header-logs-btn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors btn-hover">
+                        <i class="fas fa-file-alt mr-2"></i>日志查询
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Wrapper -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Configuration View (Default) -->
+        <div id="config-view" class="flex flex-col lg:flex-row gap-6">
+            <!-- Sidebar Navigation -->
+            <div class="lg:w-64 flex-shrink-0">
+                <div class="bg-white rounded-lg shadow-sm p-4 sticky top-24">
+                    <h3 class="font-medium text-gray-900 mb-3">配置分类</h3>
+                    <nav class="space-y-1" id="sidebar-nav">
+                        <a href="#basic-config" class="nav-link active block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">基础配置</a>
+                        <a href="#vod-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">VOD配置</a>
+                        <a href="#source-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">源排序配置</a>
+                        <a href="#danmu-filter" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">弹幕过滤</a>
+                        <a href="#danmu-process" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">弹幕处理</a>
+                        <a href="#output-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">输出配置</a>
+                        <a href="#rate-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">限流配置</a>
+                        <a href="#log-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">日志配置</a>
+                        <a href="#cache-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">缓存配置</a>
+                        <a href="#proxy-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">代理配置</a>
+                        <a href="#tmdb-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">TMDB配置</a>
+                        <a href="#redis-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">Redis配置</a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content for Config -->
+            <div class="flex-1">
+                <!-- Tab Navigation (now just one tab) -->
+                <div class="bg-white rounded-lg shadow-sm mb-6">
+                    <div class="border-b border-gray-200">
+                        <nav class="flex -mb-px">
+                            <button onclick="switchTabInternal('config')" id="config-tab" 
+                                    class="tab-btn px-6 py-3 border-b-2 border-blue-500 text-blue-600 font-medium text-sm focus:outline-none transition-colors">
+                                <i class="fas fa-cog mr-2"></i>环境变量配置
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Config Tab Panel -->
+                <div id="config-panel" class="tab-panel">
+                    <!-- Quick Actions -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-lg p-4 card-hover cursor-pointer" onclick="exportConfig()">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">导出配置</p>
+                                    <p class="text-lg font-semibold text-gray-900 mt-1">.env</p>
+                                </div>
+                                <i class="fas fa-download text-2xl text-blue-500"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 card-hover cursor-pointer" onclick="importConfig()">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">导入配置</p>
+                                    <p class="text-lg font-semibold text-gray-900 mt-1">恢复</p>
+                                </div>
+                                <i class="fas fa-upload text-2xl text-green-500"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 card-hover cursor-pointer" onclick="resetConfig()">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">重置配置</p>
+                                    <p class="text-lg font-semibold text-gray-900 mt-1">默认</p>
+                                </div>
+                                <i class="fas fa-undo text-2xl text-orange-500"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 card-hover cursor-pointer" onclick="restartService()">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">重启服务</p>
+                                    <p class="text-lg font-semibold text-gray-900 mt-1">热更新</p>
+                                </div>
+                                <i class="fas fa-sync-alt text-2xl text-purple-500"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Sections -->
+                    <div class="space-y-6">
+                        <!-- Basic Configuration -->
+                        <div id="basic-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-server mr-2 text-blue-500"></i>
+                                    基础配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        API 访问令牌
+                                        <span class="text-gray-400 text-xs ml-2">(用于鉴权)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="password" id="TOKEN" value="87654321" 
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                        <button onclick="togglePassword('TOKEN')" class="absolute right-10 top-2.5 text-gray-400 hover:text-gray-600">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="resetField('TOKEN', '87654321')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        第三方弹幕服务器
+                                        <span class="text-gray-400 text-xs ml-2">(其他服务器地址)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="url" id="OTHER_SERVER" value="https://api.danmu.icu" 
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                        <button onclick="resetField('OTHER_SERVER', 'https://api.danmu.icu')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Bilibili Cookie
+                                        <span class="text-gray-400 text-xs ml-2">(用于访问需要登录的内容)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" id="BILIBILI_COOKIE" value="" 
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        优酷并发数
+                                        <span class="text-gray-400 text-xs ml-2">(最大：16)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" id="YOUKU_CONCURRENCY" value="8" min="1" max="16"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                        <button onclick="resetField('YOUKU_CONCURRENCY', '8')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VOD Configuration -->
+                        <div id="vod-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-tv mr-2 text-green-500"></i>
+                                    VOD 配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        VOD 服务器配置
+                                        <span class="text-gray-400 text-xs ml-2">(格式：名称@URL,名称@URL,...)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <textarea id="VOD_SERVERS" rows="3" 
+                                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">金蝉@https://zy.jinchancaiji.com,789@https://www.caiji.cyou,听风@https://gctf.tfdh.top</textarea>
+                                        <button onclick="resetField('VOD_SERVERS', '金蝉@https://zy.jinchancaiji.com,789@https://www.caiji.cyou,听风@https://gctf.tfdh.top')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            返回模式
+                                            <span class="text-gray-400 text-xs ml-2">(all/fastest)</span>
+                                        </label>
+                                        <select id="VOD_RETURN_MODE" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option value="fastest" selected>fastest (最快响应)</option>
+                                            <option value="all">all (所有结果)</option>
+                                        </select>
+                                    </div>
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            请求超时时间
+                                            <span class="text-gray-400 text-xs ml-2">(毫秒)</span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="VOD_REQUEST_TIMEOUT" value="10000" min="1000" max="30000" step="1000"
+                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                            <button onclick="resetField('VOD_REQUEST_TIMEOUT', '10000')" class="reset-btn">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Source Configuration -->
+                        <div id="source-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-list-ol mr-2 text-purple-500"></i>
+                                    源排序配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        数据源查询顺序
+                                        <span class="text-gray-400 text-xs ml-2">(用逗号分隔)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" id="SOURCE_ORDER" value="360,vod,renren,hanjutv"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                        <button onclick="resetField('SOURCE_ORDER', '360,vod,renren,hanjutv')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                    <p class="mt-2 text-xs text-gray-500">可选值：360, vod, tmdb, douban, tencent, youku, iqiyi, imgo, bilibili, renren, hanjutv, bahamut</p>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        平台优先级排序
+                                        <span class="text-gray-400 text-xs ml-2">(自动匹配)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" id="PLATFORM_ORDER" value="" placeholder="qiyi, bilibili1, imgo, youku, qq, renren, hanjutv, bahamut"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        剧集标题过滤正则表达式
+                                        <span class="text-gray-400 text-xs ml-2">(用于过滤花絮、预告等)</span>
+                                        <div class="tooltip inline-block ml-1">
+                                            <i class="fas fa-question-circle text-gray-400"></i>
+                                            <span class="tooltiptext">
+                                                # 剧集标题过滤正则表达式（用于过滤花絮、预告等非正片内容）<br>
+                                                # 默认值：下方完整规则<br>
+                                                # 说明：<br>
+                                                #   - 如果设置了此环境变量，将完全覆盖默认的过滤规则（不是增量添加）<br>
+                                                #   - 格式：使用 | 分隔多个关键词，例如：预告|花絮|特辑|番外<br>
+                                                #   - 可以直接修改下方规则，按需增删关键词<br>
+                                                # 示例：只过滤预告和花絮<br>
+                                                #   EPISODE_TITLE_FILTER=预告|花絮
+                                            </span>
+                                        </div>
+                                    </label>
+                                    <div class="relative">
+                                        <textarea id="EPISODE_TITLE_FILTER" rows="4" 
+                                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">(特别|惊喜|纳凉)?企划|合伙人手记|超前(营业|vlog)?|速览|vlog|reaction|纯享|加更(版|篇)?|抢先(看|版|集|篇)?|抢鲜|预告|花絮(独家)?|特辑|彩蛋|专访|幕后(故事|花絮|独家)?|直播(陪看|回顾)?|未播(片段)?|衍生|番外|会员(专享|加长|尊享|专属|版)?|片花|精华|看点|速看|解读|影评|解说|吐槽|盘点|拍摄花絮|制作花絮|幕后花絮|未播花絮|独家花絮|花絮特辑|先导预告|终极预告|正式预告|官方预告|彩蛋片段|删减片段|未播片段|番外彩蛋|精彩片段|精彩看点|精彩回顾|精彩集锦|看点解析|看点预告|NG镜头|NG花絮|番外篇|番外特辑|制作特辑|拍摄特絮|幕后特辑|导演特辑|演员特辑|片尾曲|插曲|高光回顾|背景音乐|OST|音乐MV|歌曲MV|前季回顾|剧情回顾|往期回顾|内容总结|剧情盘点|精选合集|剪辑合集|混剪视频|独家专访|演员访谈|导演访谈|主创访谈|媒体采访|发布会采访|采访|陪看(记)?|试看版|短剧|精编|Plus|独家版|特别版|短片|发布会|解忧局|走心局|火锅局|巅峰时刻|坞里都知道|福持目标坞民|观察室|上班那点事儿|周top|赛段|直拍|REACTION|VLOG|全纪录|开播|先导|总宣|展演|集锦|旅行日记|精彩分享|剧情揭秘</textarea>
+                                        <button onclick="resetField('EPISODE_TITLE_FILTER', '(特别|惊喜|纳凉)?企划|合伙人手记|超前(营业|vlog)?|速览|vlog|reaction|纯享|加更(版|篇)?|抢先(看|版|集|篇)?|抢鲜|预告|花絮(独家)?|特辑|彩蛋|专访|幕后(故事|花絮|独家)?|直播(陪看|回顾)?|未播(片段)?|衍生|番外|会员(专享|加长|尊享|专属|版)?|片花|精华|看点|速看|解读|影评|解说|吐槽|盘点|拍摄花絮|制作花絮|幕后花絮|未播花絮|独家花絮|花絮特辑|先导预告|终极预告|正式预告|官方预告|彩蛋片段|删减片段|未播片段|番外彩蛋|精彩片段|精彩看点|精彩回顾|精彩集锦|看点解析|看点预告|NG镜头|NG花絮|番外篇|番外特辑|制作特辑|拍摄特絮|幕后特辑|导演特辑|演员特辑|片尾曲|插曲|高光回顾|背景音乐|OST|音乐MV|歌曲MV|前季回顾|剧情回顾|往期回顾|内容总结|剧情盘点|精选合集|剪辑合集|混剪视频|独家专访|演员访谈|导演访谈|主创访谈|媒体采访|发布会采访|采访|陪看(记)?|试看版|短剧|精编|Plus|独家版|特别版|短片|发布会|解忧局|走心局|火锅局|巅峰时刻|坞里都知道|福持目标坞民|观察室|上班那点事儿|周top|赛段|直拍|REACTION|VLOG|全纪录|开播|先导|总宣|展演|集锦|旅行日记|精彩分享|剧情揭秘')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Danmu Filter Configuration -->
+                        <div id="danmu-filter" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-filter mr-2 text-red-500"></i>
+                                    弹幕过滤配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        屏蔽词列表
+                                        <span class="text-gray-400 text-xs ml-2">(用于过滤弹幕内容)</span>
+                                        <div class="tooltip inline-block ml-1">
+                                            <i class="fas fa-question-circle text-gray-400"></i>
+                                            <span class="tooltiptext">
+                                                # 屏蔽词列表（用于过滤弹幕内容）<br>
+                                                # 默认值：空<br>
+                                                # 说明：<br>
+                                                #   - 支持正则表达式<br>
+                                                #   - 多个规则用逗号分隔<br>
+                                                #   - 可用于过滤垃圾信息、广告等
+                                            </span>
+                                        </div>
+                                    </label>
+                                    <div class="relative">
+                                        <textarea id="BLOCKED_WORDS" rows="6" 
+                                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">/.{20,}/,/^\\d{2,4}[-/.]\\d{1,2}[-/.]\\d{1,2}([日号.]*)?$/,/^(?!哈+$)([a-zA-Z\\u4e00-\\u9fa5])\\1{2,}/,/[0-9]+\\.*[0-9]*\\s*(w|万)+\\s*(\\+|个|人|在看)+/,/^[a-z]{6,}$/,/^(?:qwertyuiop|asdfghjkl|zxcvbnm)$/,/^\\d{5,}$/,/^(\\d)\\1{2,}$/,/\\d{1,4}/,/(20[0-3][0-9])/,/(0?[1-9]|1[0-2])月/,/\\d{1,2}[.-]\\d{1,2}/,/[@#&$%^*+\\|/\\-_=<>°◆◇■□●○★☆▼▲♥♦♠♣①②③④⑤⑥⑦⑧⑨⑩]/,/[一二三四五六七八九十百\\d]+刷/,/第[一二三四五六七八九十百\\d]+/,/(全体成员|报到|报道|来啦|签到|刷|打卡|我在|来了|考古|爱了|挖坟|留念|你好|回来|哦哦|重温|复习|重刷|再看|在看|前排|沙发|有人看|板凳|末排|我老婆|我老公|撅了|后排|周目|重看|包养|DVD|同上|同样|我也是|俺也|算我|爱豆|我家爱豆|我家哥哥|加我|三连|币|新人|入坑|补剧|冲了|硬了|看完|舔屏|万人|牛逼|煞笔|傻逼|卧槽|tm|啊这|哇哦)/,/(会员|VIP|vip|Vip)/</textarea>
+                                        <button onclick="resetField('BLOCKED_WORDS', '/.{20,}/,/^\\d{2,4}[-/.]\\d{1,2}[-/.]\\d{1,2}([日号.]*)?$/,/^(?!哈+$)([a-zA-Z\\u4e00-\\u9fa5])\\1{2,}/,/[0-9]+\\.*[0-9]*\\s*(w|万)+\\s*(\\+|个|人|在看)+/,/^[a-z]{6,}$/,/^(?:qwertyuiop|asdfghjkl|zxcvbnm)$/,/^\\d{5,}$/,/^(\\d)\\1{2,}$/,/\\d{1,4}/,/(20[0-3][0-9])/,/(0?[1-9]|1[0-2])月/,/\\d{1,2}[.-]\\d{1,2}/,/[@#&$%^*+\\|/\\-_=<>°◆◇■□●○★☆▼▲♥♦♠♣①②③④⑤⑥⑦⑧⑨⑩]/,/[一二三四五六七八九十百\\d]+刷/,/第[一二三四五六七八九十百\\d]+/,/(全体成员|报到|报道|来啦|签到|刷|打卡|我在|来了|考古|爱了|挖坟|留念|你好|回来|哦哦|重温|复习|重刷|再看|在看|前排|沙发|有人看|板凳|末排|我老婆|我老公|撅了|后排|周目|重看|包养|DVD|同上|同样|我也是|俺也|算我|爱豆|我家爱豆|我家哥哥|加我|三连|币|新人|入坑|补剧|冲了|硬了|看完|舔屏|万人|牛逼|煞笔|傻逼|卧槽|tm|啊这|哇哦)/,/(会员|VIP|vip|Vip)/')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">是否在手动选择接口中启用集标题过滤</label>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="ENABLE_EPISODE_FILTER" class="custom-checkbox">
+                                        <label for="ENABLE_EPISODE_FILTER" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <span>启用集标题过滤</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">是否启用严格标题匹配模式</label>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="STRICT_TITLE_MATCH" class="custom-checkbox">
+                                        <label for="STRICT_TITLE_MATCH" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <span>启用严格匹配</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Danmu Process Configuration -->
+                        <div id="danmu-process" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-cogs mr-2 text-indigo-500"></i>
+                                    弹幕处理配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">分钟内合并去重</label>
+                                        <div class="relative">
+                                            <input type="number" id="GROUP_MINUTE" value="1" min="0" max="30"
+                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                            <button onclick="resetField('GROUP_MINUTE', '1')" class="reset-btn">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            颜色循环弹幕颜色列表
+                                            <span class="text-gray-400 text-xs ml-2">(十进制或十六进制)</span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="text" id="COLOR_CYCLE_DANMU_LIST" value="11193542,11513775,14474460,12632297,13484213"
+                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                            <button onclick="resetField('COLOR_CYCLE_DANMU_LIST', '11193542,11513775,14474460,12632297,13484213')" class="reset-btn">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否将顶部和底部弹幕转换为浮动弹幕</label>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="CONVERT_TOP_BOTTOM_TO_SCROLL" class="custom-checkbox">
+                                            <label for="CONVERT_TOP_BOTTOM_TO_SCROLL" class="custom-checkbox-label">
+                                                <span class="checkbox-square">
+                                                    <i class="fas fa-check checkbox-icon"></i>
+                                                </span>
+                                                <span>转换为浮动弹幕</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否将彩色弹幕转换为纯白弹幕</label>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="CONVERT_COLOR_TO_WHITE" class="custom-checkbox">
+                                            <label for="CONVERT_COLOR_TO_WHITE" class="custom-checkbox-label">
+                                                <span class="checkbox-square">
+                                                    <i class="fas fa-check checkbox-icon"></i>
+                                                </span>
+                                                <span>转换为纯白弹幕</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否启用随机彩色弹幕</label>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="ENABLE_RANDOM_COLOR_DANMU" class="custom-checkbox">
+                                            <label for="ENABLE_RANDOM_COLOR_DANMU" class="custom-checkbox-label">
+                                                <span class="checkbox-square">
+                                                    <i class="fas fa-check checkbox-icon"></i>
+                                                </span>
+                                                <span>启用随机彩色弹幕</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否启用颜色循环弹幕</label>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="ENABLE_COLOR_CYCLE_DANMU" checked class="custom-checkbox">
+                                            <label for="ENABLE_COLOR_CYCLE_DANMU" class="custom-checkbox-label">
+                                                <span class="checkbox-square">
+                                                    <i class="fas fa-check checkbox-icon"></i>
+                                                </span>
+                                                <span>启用颜色循环弹幕</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">是否将繁体弹幕转换为简体</label>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="DANMU_SIMPLIFIED" checked class="custom-checkbox">
+                                        <label for="DANMU_SIMPLIFIED" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                    <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <span>转换为简体</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Output Configuration -->
+                        <div id="output-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-file-export mr-2 text-yellow-500"></i>
+                                    输出配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        弹幕输出格式
+                                        <div class="tooltip inline-block ml-1">
+                                            <i class="fas fa-question-circle text-gray-400"></i>
+                                            <span class="tooltiptext">
+                                                # 弹幕输出格式（全局默认格式）<br>
+                                                # 默认值：json<br>
+                                                # 可选值：json, xml<br>
+                                                # 说明：<br>
+                                                #   - json: 返回 JSON 格式的弹幕数据（默认）<br>
+                                                #   - xml: 返回 XML 格式的弹幕数据（兼容弹弹play等客户端）<br>
+                                                # 注意：可通过 API 查询参数 ?format=xml 或 ?format=json 覆盖此设置<br>
+                                                # 示例：GET /api/v2/comment/10001?format=xml
+                                            </span>
+                                        </div>
+                                    </label>
+                                    <select id="DANMU_OUTPUT_FORMAT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="json" selected>json</option>
+                                        <option value="xml">xml</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rate Limit Configuration -->
+                        <div id="rate-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-tachometer-alt mr-2 text-orange-500"></i>
+                                    限流配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        API 限流：1分钟内同一IP最大请求次数
+                                        <span class="text-gray-400 text-xs ml-2">(0表示不限流)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" id="RATE_LIMIT_MAX_REQUESTS" value="3" min="0" max="100"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                        <button onclick="resetField('RATE_LIMIT_MAX_REQUESTS', '3')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Log Configuration -->
+                        <div id="log-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-file-alt mr-2 text-gray-500"></i>
+                                    日志配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">日志级别</label>
+                                    <select id="LOG_LEVEL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="error">error (仅错误)</option>
+                                        <option value="warn">warn (错误和警告)</option>
+                                        <option value="info" selected>info (所有日志)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cache Configuration -->
+                        <div id="cache-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-database mr-2 text-teal-500"></i>
+                                    缓存配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">搜索结果缓存时间(分钟)</label>
+                                        <div class="relative">
+                                            <input type="number" id="SEARCH_CACHE_MINUTES" value="1" min="0" max="60"
+                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                            <button onclick="resetField('SEARCH_CACHE_MINUTES', '1')" class="reset-btn">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">弹幕缓存时间(分钟)</label>
+                                        <div class="relative">
+                                            <input type="number" id="COMMENT_CACHE_MINUTES" value="1" min="0" max="60"
+                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                            <button onclick="resetField('COMMENT_CACHE_MINUTES', '1')" class="reset-btn">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否记住手动选择结果</label>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="REMEMBER_LAST_SELECT" checked class="custom-checkbox">
+                                            <label for="REMEMBER_LAST_SELECT" class="custom-checkbox-label">
+                                                <span class="checkbox-square">
+                                                    <i class="fas fa-check checkbox-icon"></i>
+                                                </span>
+                                                <span>记住选择结果</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        用户偏好记忆缓存大小限制
+                                        <span class="text-gray-400 text-xs ml-2">(条目数)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" id="MAX_LAST_SELECT_MAP" value="100" min="1" max="1000"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                        <button onclick="resetField('MAX_LAST_SELECT_MAP', '100')" class="reset-btn">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Proxy Configuration -->
+                        <div id="proxy-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-shield-alt mr-2 text-cyan-500"></i>
+                                    代理配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        代理/反代地址
+                                        <span class="text-gray-400 text-xs ml-2">(用于访问受限资源)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="url" id="PROXY_URL" value="" placeholder="http://proxy-server:port 或 @http://proxy-server"
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TMDB Configuration -->
+                        <div id="tmdb-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-film mr-2 text-pink-500"></i>
+                                    TMDB 配置
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        TMDB API Key
+                                        <span class="text-gray-400 text-xs ml-2">(用于巴哈姆特源的译名转换)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="password" id="TMDB_API_KEY" value=""
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Redis Configuration -->
+                        <div id="redis-config" class="config-section bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <i class="fas fa-leaf mr-2 text-green-600"></i>
+                                    Redis 配置（Upstash）
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Upstash Redis REST URL</label>
+                                    <div class="relative">
+                                        <input type="url" id="UPSTASH_REDIS_REST_URL" value=""
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Upstash Redis REST Token</label>
+                                    <div class="relative">
+                                        <input type="password" id="UPSTASH_REDIS_REST_TOKEN" value=""
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Save Button (Removed for auto-save) -->
+                        <!-- <div class="flex justify-end space-x-4">
+                            <button onclick="discardChanges()" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                取消更改
+                            </button>
+                            <button onclick="saveConfig()" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors btn-hover">
+                                <i class="fas fa-save mr-2"></i>保存配置
+                            </button>
+                        </div> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs View (Hidden by default, full width when active) -->
+        <div id="logs-view" class="hidden">
+            <!-- Log Controls -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">日志级别</label>
+                        <select id="logLevel" onchange="fetchLogs()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="all">全部</option>
+                            <option value="error">错误</option>
+                            <option value="warn">警告</option>
+                            <option value="info" selected>信息</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">时间范围</label>
+                        <select id="logTimeRange" onchange="fetchLogs()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="1h">最近1小时</option>
+                            <option value="6h">最近6小时</option>
+                            <option value="24h" selected>最近24小时</option>
+                            <option value="7d">最近7天</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">关键字搜索</label>
+                        <input type="text" id="logKeyword" placeholder="输入关键字..." 
+                               onkeyup="if(event.key === 'Enter') fetchLogs()"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="fetchLogs()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors btn-hover">
+                            <i class="fas fa-search mr-2"></i>查询
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Display -->
+            <div class="bg-gray-900 rounded-lg shadow-sm">
+                <div class="px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-gray-400 text-sm">
+                            <i class="fas fa-terminal mr-2"></i>
+                            实时日志
+                        </span>
+                        <span id="logCount" class="text-xs text-gray-500">共 0 条</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="toggleAutoScroll()" id="autoScrollBtn" class="px-3 py-1 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-arrows-alt-v mr-1"></i>自动滚动
+                        </button>
+                        <button onclick="clearLogs()" class="px-3 py-1 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-trash mr-1"></i>清空
+                        </button>
+                        <button onclick="downloadLogs()" class="px-3 py-1 text-xs bg-gray-800 text-gray-300 rounded hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-download mr-1"></i>下载
+                        </button>
+                    </div>
+                </div>
+                <div id="logContent" class="overflow-y-auto p-4 text-green-400 text-sm log-line scrollbar-thin" style="height: calc(100vh - 250px);">
+                    <!-- Logs will be displayed here -->
+                    <div class="loading-pulse">正在加载日志...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 transform translate-x-full transition-transform duration-300 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 flex items-center space-x-3 min-w-[300px]">
+            <div id="toastIcon"></div>
+            <div>
+                <p id="toastMessage" class="text-sm font-medium text-gray-900"></p>
+                <p id="toastDescription" class="text-xs text-gray-500 mt-1"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Global variables
+        let autoScroll = true;
+        let originalConfig = {};
+        let currentView = 'config'; // Tracks 'config' or 'logs'
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentConfig();
+            
+            // Smooth scrolling for navigation links (only relevant for config view)
+            document.querySelectorAll('#sidebar-nav .nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+            
+            // Add scroll event listener for active navigation highlighting (only for config view)
+            window.addEventListener('scroll', updateActiveNavigation);
+
+            // Ensure correct view is shown on load
+            switchView('config'); 
+        });
+
+        // Switch between config and logs views
+        function switchView(viewName) {
+            const configView = document.getElementById('config-view');
+            const logsView = document.getElementById('logs-view');
+            const headerConfigBtn = document.getElementById('header-config-btn');
+            const headerLogsBtn = document.getElementById('header-logs-btn');
+
+            if (viewName === 'config') {
+                configView.classList.remove('hidden');
+                logsView.classList.add('hidden');
+                headerConfigBtn.classList.add('active');
+                headerLogsBtn.classList.remove('active');
+                currentView = 'config';
+                window.addEventListener('scroll', updateActiveNavigation); // Re-enable sidebar nav highlighting
+                updateActiveNavigation(); // Set initial highlight
+            } else if (viewName === 'logs') {
+                configView.classList.add('hidden');
+                logsView.classList.remove('hidden');
+                headerLogsBtn.classList.add('active');
+                headerConfigBtn.classList.remove('active');
+                currentView = 'logs';
+                window.removeEventListener('scroll', updateActiveNavigation); // Disable sidebar nav highlighting
+                fetchLogs(); // Load logs when logs view is active
+            }
+        }
+
+        // Update active navigation based on scroll position (only for config view)
+        function updateActiveNavigation() {
+            if (currentView !== 'config') return; // Only update if in config view
+
+            const sections = document.querySelectorAll('.config-section');
+            const navLinks = document.querySelectorAll('#sidebar-nav .nav-link');
+            
+            let currentSectionId = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                // Consider a section active if its top is within 100px from viewport top
+                // and it's still visible
+                if (rect.top <= 100 && rect.bottom > 100) {
+                    currentSectionId = section.id;
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${currentSectionId}`) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Internal tab switching (only 'config' panel exists now)
+        function switchTabInternal(tabName) {
+            // Since there's only one internal tab now, this function mostly
+            // ensures the config panel is visible if somehow hidden, and its tab is active.
+            document.getElementById('config-panel').classList.remove('hidden');
+            document.getElementById('config-tab').classList.add('border-blue-500', 'text-blue-600');
+            document.getElementById('config-tab').classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // Reset field to default value
+        function resetField(fieldId, defaultValue) {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = defaultValue === 'true';
+                } else if (element.tagName === 'SELECT') {
+                    element.value = defaultValue;
+                } else {
+                    element.value = defaultValue;
+                }
+                showToast('info', '字段已重置', `字段 ${fieldId} 已重置为默认值`);
+            }
+        }
+
+        // Configuration functions
+        // Configuration functions
+        function loadCurrentConfig() {
+            fetch('/api/config')
+                .then(response => response.json())
+                .then(config => {
+                    originalConfig = { ...config };
+                    // Populate form fields
+                    Object.keys(config).forEach(key => {
+                        const element = document.getElementById(key);
+                        if (element) {
+                            if (element.type === 'checkbox') {
+                                element.checked = config[key] === 'true';
+                            } else if (element.tagName === 'SELECT') {
+                                element.value = config[key];
+                            } else {
+                                element.value = config[key];
+                            }
+                            // Add event listeners for auto-save
+                            element.addEventListener('change', autoSaveConfig);
+                            if (element.tagName === 'INPUT' && (element.type === 'text' || element.type === 'password' || element.type === 'url' || element.type === 'number')) {
+                                element.addEventListener('input', autoSaveConfig);
+                            }
+                            if (element.tagName === 'TEXTAREA') {
+                                element.addEventListener('input', autoSaveConfig);
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading config:', error);
+                    showToast('error', '加载配置失败', '无法从服务器获取配置');
+                });
+        }
+
+        let autoSaveTimeout;
+
+        function autoSaveConfig() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                saveConfig();
+            }, 1000); // 1 second debounce
+        }
+
+        function saveConfig() {
+            const config = {};
+            const fields = [
+                'TOKEN', 'OTHER_SERVER', 'BILIBILI_COOKIE', 'YOUKU_CONCURRENCY',
+                'VOD_SERVERS', 'VOD_RETURN_MODE', 'VOD_REQUEST_TIMEOUT',
+                'SOURCE_ORDER', 'PLATFORM_ORDER', 'EPISODE_TITLE_FILTER',
+                'BLOCKED_WORDS', 'GROUP_MINUTE', 'COLOR_CYCLE_DANMU_LIST',
+                'DANMU_OUTPUT_FORMAT', 'RATE_LIMIT_MAX_REQUESTS', 'LOG_LEVEL',
+                'SEARCH_CACHE_MINUTES', 'COMMENT_CACHE_MINUTES', 'MAX_LAST_SELECT_MAP',
+                'PROXY_URL', 'TMDB_API_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'
+            ];
+            
+            fields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    if (element.tagName === 'SELECT') {
+                        config[field] = element.value;
+                    } else {
+                        config[field] = element.value;
+                    }
+                }
+            });
+            
+            // Add checkbox values
+            const checkboxFields = [
+                'ENABLE_EPISODE_FILTER', 'STRICT_TITLE_MATCH', 'CONVERT_TOP_BOTTOM_TO_SCROLL',
+                'CONVERT_COLOR_TO_WHITE', 'ENABLE_RANDOM_COLOR_DANMU', 'ENABLE_COLOR_CYCLE_DANMU',
+                'DANMU_SIMPLIFIED', 'REMEMBER_LAST_SELECT'
+            ];
+            
+            checkboxFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    config[field] = element.checked ? 'true' : 'false';
+                }
+            });
+            
+            fetch('/api/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config),
+            })
+            .then(response => {
+                if (response.ok) {
+                    showToast('success', '配置已保存', '所有更改已成功应用到系统');
+                    originalConfig = { ...config };
+                } else {
+                    showToast('error', '保存失败', '无法保存配置到服务器');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving config:', error);
+                showToast('error', '保存失败', '发生网络错误');
+            });
+        }
+
+        // Discard changes function is no longer needed with auto-save
+        // function discardChanges() {
+        //     loadCurrentConfig();
+        //     showToast('info', '已重置', '所有更改已被取消');
+        // }
+
+        function exportConfig() {
+            // Generate .env content with comments
+            let envContent = `# 弹幕 API 环境变量配置示例\n`;
+            envContent += `# 导出时间: ${new Date().toLocaleString()}\n\n`;
+            envContent += `# ==================== 基础配置 ====================\n\n`;
+            
+            // Basic Configuration
+            envContent += `# API 访问令牌（用于鉴权）\n`;
+            envContent += `# 默认值：87654321\n`;
+            envContent += `TOKEN=${document.getElementById('TOKEN').value}\n\n`;
+            
+            envContent += `# 其他服务器地址（第三方弹幕服务器）\n`;
+            envContent += `# 默认值：https://api.danmu.icu\n`;
+            envContent += `OTHER_SERVER=${document.getElementById('OTHER_SERVER').value}\n\n`;
+            
+            envContent += `# Bilibili Cookie（用于访问需要登录的内容）\n`;
+            envContent += `# 默认值：空（不使用 Cookie）\n`;
+            envContent += `BILIBILI_COOKIE=${document.getElementById('BILIBILI_COOKIE').value}\n\n`;
+            
+            envContent += `# 优酷并发数（最大：16）\n`;
+            envContent += `# 默认值：8\n`;
+            envContent += `YOUKU_CONCURRENCY=${document.getElementById('YOUKU_CONCURRENCY').value}\n\n`;
+            
+            envContent += `# ==================== VOD 配置 ====================\n\n`;
+            
+            envContent += `# VOD 服务器配置（支持多服务器）\n`;
+            envContent += `# 格式：名称@URL,名称@URL,...\n`;
+            envContent += `# 示例：VOD_SERVERS=金蝉@https://zy.jinchancaiji.com,789@https://www.caiji.cyou,听风@https://gctf.tfdh.top\n`;
+            envContent += `# 如果不指定名称，会自动生成 vod-1, vod-2 等名称\n`;
+            envContent += `# 默认值：金蝉@https://zy.jinchancaiji.com,789@https://www.caiji.cyou,听风@https://gctf.tfdh.top\n`;
+            envContent += `VOD_SERVERS=${document.getElementById('VOD_SERVERS').value}\n\n`;
+            
+            envContent += `# VOD 服务器返回模式\n`;
+            envContent += `# 可选值：all（返回所有站点结果）、fastest（只返回最快的站点结果）\n`;
+            envContent += `# 默认值：fastest\n`;
+            envContent += `VOD_RETURN_MODE=${document.getElementById('VOD_RETURN_MODE').value}\n\n`;
+            
+            envContent += `# VOD 服务器请求超时时间（毫秒）\n`;
+            envContent += `# 默认值：10000（10秒）\n`;
+            envContent += `# 建议值：5000-15000\n`;
+            envContent += `VOD_REQUEST_TIMEOUT=${document.getElementById('VOD_REQUEST_TIMEOUT').value}\n\n`;
+            
+            envContent += `# ==================== 源排序配置 ====================\n\n`;
+            
+            envContent += `# 数据源查询顺序（可选值：360, vod, tmdb, douban, tencent, youku, iqiyi, imgo, bilibili, renren, hanjutv, bahamut）\n`;
+            envContent += `# 默认值：360,vod,renren,hanjutv（不包含 tencent, youku, iqiyi, imgo 和 bilibili）\n`;
+            envContent += `SOURCE_ORDER=${document.getElementById('SOURCE_ORDER').value}\n\n`;
+            
+            envContent += `# 平台优先级排序（用于自动匹配）\n`;
+            envContent += `# 默认值：空（自动匹配）\n`;
+            envContent += `# 可选值：qiyi, bilibili1, imgo, youku, qq, renren, hanjutv, bahamut\n`;
+            envContent += `PLATFORM_ORDER=${document.getElementById('PLATFORM_ORDER').value}\n\n`;
+            
+            envContent += `# 剧集标题过滤正则表达式（用于过滤花絮、预告等非正片内容）\n`;
+            envContent += `# 默认值：下方完整规则\n`;
+            envContent += `EPISODE_TITLE_FILTER=${document.getElementById('EPISODE_TITLE_FILTER').value}\n\n`;
+            
+            envContent += `# ==================== 屏蔽词配置 ====================\n\n`;
+            
+            envContent += `# 屏蔽词列表（用于过滤弹幕内容）\n`;
+            envContent += `# 默认值：空\n`;
+            envContent += `BLOCKED_WORDS=${document.getElementById('BLOCKED_WORDS').value}\n\n`;
+            
+            envContent += `# ==================== 弹幕去重配置 ====================\n\n`;
+            
+            envContent += `# 分钟内合并去重（最大值：30，0 表示不去重）\n`;
+            envContent += `# 默认值：1\n`;
+            envContent += `GROUP_MINUTE=${document.getElementById('GROUP_MINUTE').value}\n\n`;
+            
+            envContent += `# ==================== 弹幕转换配置 ====================\n\n`;
+            
+            envContent += `# 是否将顶部和底部弹幕转换为浮动弹幕\n`;
+            envContent += `# 默认值：false（不转换）\n`;
+            envContent += `# 可选值：true, false\n`;
+            envContent += `CONVERT_TOP_BOTTOM_TO_SCROLL=${document.getElementById('CONVERT_TOP_BOTTOM_TO_SCROLL').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# 是否将彩色弹幕转换为纯白弹幕\n`;
+            envContent += `# 默认值：false（不转换）\n`;
+            envContent += `# 可选值：true, false\n`;
+            envContent += `CONVERT_COLOR_TO_WHITE=${document.getElementById('CONVERT_COLOR_TO_WHITE').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# 是否启用随机彩色弹幕\n`;
+            envContent += `# 默认值：false（不转换）\n`;
+            envContent += `# 可选值：true, false\n`;
+            envContent += `ENABLE_RANDOM_COLOR_DANMU=${document.getElementById('ENABLE_RANDOM_COLOR_DANMU').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# 是否启用颜色循环弹幕\n`;
+            envContent += `# 默认值：false（不转换）\n`;
+            envContent += `ENABLE_COLOR_CYCLE_DANMU=${document.getElementById('ENABLE_COLOR_CYCLE_DANMU').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# 颜色循环弹幕颜色列表（十进制或十六进制，用逗号分隔）\n`;
+            envContent += `# 默认值：11193542,11513775,14474460,12632297,13484213（淡灰蓝,雾霾灰,米白灰,浅卡其,莫兰迪粉）\n`;
+            envContent += `COLOR_CYCLE_DANMU_LIST=${document.getElementById('COLOR_CYCLE_DANMU_LIST').value}\n\n`;
+            
+            envContent += `# 是否将繁体弹幕转换为简体，目前只对巴哈姆特源生效\n`;
+            envContent += `# 默认值：true（转换）\n`;
+            envContent += `# 可选值：true, false\n`;
+            envContent += `DANMU_SIMPLIFIED=${document.getElementById('DANMU_SIMPLIFIED').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# ==================== 弹幕输出格式配置 ====================\n\n`;
+            
+            envContent += `# 弹幕输出格式（全局默认格式）\n`;
+            envContent += `# 默认值：json\n`;
+            envContent += `# 可选值：json, xml\n`;
+            envContent += `# 说明：\n`;
+            envContent += `#   - json: 返回 JSON 格式的弹幕数据（默认）<br>
+            #   - xml: 返回 XML 格式的弹幕数据（兼容弹弹play等客户端）<br>
+            # 注意：可通过 API 查询参数 ?format=xml 或 ?format=json 覆盖此设置<br>
+            # 示例：GET /api/v2/comment/10001?format=xml\n`;
+            envContent += `DANMU_OUTPUT_FORMAT=${document.getElementById('DANMU_OUTPUT_FORMAT').value}\n\n`;
+            
+            envContent += `# ==================== 限流配置 ====================\n\n`;
+            
+            envContent += `# API 限流：1分钟内同一IP最大请求次数\n`;
+            envContent += `# 默认值：3（1分钟内最多3次请求）\n`;
+            envContent += `# 设置为 0 表示不限流\n`;
+            envContent += `RATE_LIMIT_MAX_REQUESTS=${document.getElementById('RATE_LIMIT_MAX_REQUESTS').value}\n\n`;
+            
+            envContent += `# ==================== 集标题过滤开关 ====================\n\n`;
+            
+            envContent += `# 是否在手动选择接口中启用集标题过滤\n`;
+            envContent += `# 默认值：false（禁用）\n`;
+Content += `# 可选值：true, false\n`;
+            envContent += `ENABLE_EPISODE_FILTER=${document.getElementById('ENABLE_EPISODE_FILTER').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# ==================== 搜索匹配模式 ====================\n\n`;
+            
+            envContent += `# 是否启用严格标题匹配模式\n`;
+            envContent += `# 默认值：false（宽松模糊匹配）\n`;
+            envContent += `# 可选值：true, false\n`;
+            envContent += `STRICT_TITLE_MATCH=${document.getElementById('STRICT_TITLE_MATCH').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# ==================== 代理配置 ====================\n\n`;
+            
+            envContent += `# 代理/反代地址（用于访问受限资源）\n`;
+            envContent += `# 默认值：空（不使用代理/反代）\n`;
+            envContent += `PROXY_URL=${document.getElementById('PROXY_URL').value}\n\n`;
+            
+            envContent += `# ==================== TMDB 配置 ====================\n\n`;
+            
+            envContent += `# TMDB API Key（用于巴哈姆特源的译名转换）\n`;
+            envContent += `# 默认值：空（不使用 TMDB）\n`;
+            envContent += `TMDB_API_KEY=${document.getElementById('TMDB_API_KEY').value}\n\n`;
+            
+            envContent += `# ==================== 日志配置 ====================\n\n`;
+            
+            envContent += `# 日志级别（可选值：error, warn, info）\n`;
+            envContent += `# 默认值：info\n`;
+            envContent += `LOG_LEVEL=${document.getElementById('LOG_LEVEL').value}\n\n`;
+            
+            envContent += `# ==================== 缓存配置 ====================\n\n`;
+            
+            envContent += `# 搜索结果缓存时间（分钟）\n`;
+            envContent += `# 默认值：1\n`;
+            envContent += `SEARCH_CACHE_MINUTES=${document.getElementById('SEARCH_CACHE_MINUTES').value}\n\n`;
+            
+            envContent += `# 弹幕缓存时间（分钟）\n`;
+            envContent += `# 默认值：1\n`;
+            envContent += `COMMENT_CACHE_MINUTES=${document.getElementById('COMMENT_CACHE_MINUTES').value}\n\n`;
+            
+            envContent += `# 是否记住手动选择结果\n`;
+            envContent += `# 默认值：true\n`;
+            envContent += `REMEMBER_LAST_SELECT=${document.getElementById('REMEMBER_LAST_SELECT').checked ? 'true' : 'false'}\n\n`;
+            
+            envContent += `# 用户偏好记忆缓存大小限制\n`;
+            envContent += `# 默认值：100\n`;
+            envContent += `MAX_LAST_SELECT_MAP=${document.getElementById('MAX_LAST_SELECT_MAP').value}\n\n`;
+            
+            envContent += `# ==================== Redis 配置（Upstash）====================\n\n`;
+            
+            envContent += `# Upstash Redis REST URL（用于缓存）\n`;
+            envContent += `# 默认值：空（不使用 Redis）\n`;
+            envContent += `UPSTASH_REDIS_REST_URL=${document.getElementById('UPSTASH_REDIS_REST_URL').value}\n\n`;
+            
+            envContent += `# Upstash Redis REST Token\n`;
+            envContent += `# 默认值：空\n`;
+            envContent += `UPSTASH_REDIS_REST_TOKEN=${document.getElementById('UPSTASH_REDIS_REST_TOKEN').value}\n`;
+            
+            // Create download link
+            const blob = new Blob([envContent], {type: 'text/plain'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '.env';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showToast('success', '导出成功', '.env文件已下载');
+        }
+
+        function importConfig() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.env';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const content = event.target.result;
+                        // Parse .env file
+                        const lines = content.split('\n');
+                        lines.forEach(line => {
+                            if (line && !line.startsWith('#')) {
+                                const [key, value] = line.split('=');
+                                if (key && value) {
+                                    const element = document.getElementById(key);
+                                    if (element) {
+                                        if (element.type === 'checkbox') {
+                                            element.checked = value === 'true';
+                                        } else if (element.tagName === 'SELECT') {
+                                            element.value = value;
+                                        } else {
+                                            element.value = value;
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        showToast('success', '导入成功', '配置已从文件加载');
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function resetConfig() {
+            if (confirm('确定要重置所有配置为默认值吗？此操作不可恢复。')) {
+                loadCurrentConfig();
+                showToast('warning', '已重置', '配置已恢复为默认值');
+            }
+        }
+
+        function restartService() {
+            showToast('info', '正在重启', '服务正在热更新中，请稍候...');
+            fetch('/api/restart', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('success', '重启指令已发送', '服务正在后台重启');
+                    } else {
+                        showToast('error', '重启失败', '无法发送重启指令');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error restarting service:', error);
+                    showToast('error', '重启失败', '发生网络错误');
+                });
+        }
+
+        // Password toggle
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const icon = field.nextElementSibling.querySelector('i');
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Logs functions
+        function fetchLogs() {
+            const logContent = document.getElementById('logContent');
+            logContent.innerHTML = '<div class="loading-pulse text-gray-400">正在加载日志...</div>';
+
+            fetch('/api/logs')
+                .then(response => response.text())
+                .then(logText => {
+                    const logs = parseLogs(logText);
+                    displayLogs(logs);
+                })
+                .catch(error => {
+                    console.error('Error fetching logs:', error);
+                    logContent.innerHTML = '<div class="text-red-400">加载日志失败</div>';
+                });
+        }
+
+        function parseLogs(logText) {
+            const lines = logText.split('\n').filter(line => line.trim() !== '');
+            return lines.map(line => {
+                const match = line.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+\d{2}:\d{2}) \[(\w+)\] (.*)/);
+                if (match) {
+                    return {
+                        timestamp: match[1],
+                        level: match[2].toLowerCase(),
+                        message: match[3]
+                    };
+                }
+                return null;
+            }).filter(log => log !== null);
+        }
+
+        function generateMockLogs(level, timeRange, keyword) {
+            const levels = ['info', 'warn', 'error'];
+            const messages = [
+                'API请求处理成功',
+                'VOD服务器连接超时',
+                '缓存已更新',
+                '数据库查询完成',
+                '用户认证成功',
+                '配置文件已重新加载',
+                '内存使用率: 68%',
+                '新连接已建立',
+                '弹幕数据同步完成',
+                '搜索请求已处理',
+                '弹幕过滤规则已应用',
+                '代理服务器连接正常',
+                'TMDB API访问成功',
+                'Redis缓存连接成功',
+                '弹幕去重处理完成',
+                '请求 /api/v2/search?title=示例影片&episode=1 成功',
+                'WARN: 未找到匹配的VOD资源，尝试使用备用源',
+                'ERROR: 数据库连接失败，请检查配置',
+                'INFO: 用户 \'admin\' 登录成功，IP: 192.168.1.100',
+                'DEBUG: Cache hit for key \'search_example\'',
+                'API限流触发：IP 192.168.1.5 请求过于频繁',
+                'VOD源 \'金蝉\' 返回数据，响应时间 120ms',
+                'TMDB API KEY为空，将跳过TMDB翻译',
+                'Redis缓存写入成功: key \'comment_12345\'',
+                '弹幕内容过滤：[广告信息] 关键词被屏蔽',
+                'INFO: 服务启动完成，监听端口 8080'
+            ];
+            
+            const logs = [];
+            const count = Math.floor(Math.random() * 50) + 20; // More logs for better display
+            
+            for (let i = 0; i < count; i++) {
+                const logLevel = levels[Math.floor(Math.random() * levels.length)];
+                const message = messages[Math.floor(Math.random() * messages.length)];
+                const timestamp = new Date(Date.now() - Math.random() * 86400000).toISOString();
+                
+                // Filter by level
+                if (level !== 'all' && logLevel !== level) continue;
+                
+                // Filter by keyword
+                if (keyword && !message.toLowerCase().includes(keyword.toLowerCase())) continue;
+
+                logs.push({
+                    level: logLevel,
+                    message: message,
+                    timestamp: timestamp
+                });
+            }
+            
+            return logs.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp)); // Sort by time
+        }
+
+        function displayLogs(allLogs) {
+            const logContent = document.getElementById('logContent');
+            const logCount = document.getElementById('logCount');
+            const selectedLevel = document.getElementById('logLevel').value;
+            const keyword = document.getElementById('logKeyword').value.toLowerCase();
+
+            let filteredLogs = allLogs;
+
+            // Filter by log level
+            if (selectedLevel !== 'all') {
+                filteredLogs = filteredLogs.filter(log => {
+                    if (selectedLevel === 'warn') {
+                        return log.level === 'warn' || log.level === 'error';
+                    }
+                    return log.level === selectedLevel;
+                });
+            }
+
+            // Filter by keyword
+            if (keyword) {
+                filteredLogs = filteredLogs.filter(log => log.message.toLowerCase().includes(keyword));
+            }
+            
+            logCount.textContent = `共 ${filteredLogs.length} 条`;
+            
+            let html = '';
+            filteredLogs.forEach(log => {
+                const levelColor = {
+                    'info': 'text-green-400',
+                    'warn': 'text-yellow-400',
+                    'error': 'text-red-400'
+                }[log.level];
+                
+                const levelIcon = {
+                    'info': 'fa-info-circle',
+                    'warn': 'fa-exclamation-triangle',
+                    'error': 'fa-times-circle'
+                }[log.level];
+                
+                html += `
+                    <div class="flex items-start space-x-2 mb-2 hover:bg-gray-800 p-2 rounded transition-colors">
+                        <i class="fas ${levelIcon} ${levelColor} mt-0.5"></i>
+                        <span class="text-gray-500 text-xs">[${new Date(log.timestamp).toLocaleString()}]</span>
+                        <span class="${levelColor}">${log.message}</span>
+                    </div>
+                `;
+            });
+            
+            logContent.innerHTML = html;
+            
+            if (autoScroll) {
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+        }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('autoScrollBtn');
+            if (autoScroll) {
+                btn.classList.add('bg-blue-600');
+                btn.classList.remove('bg-gray-800');
+            } else {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-gray-800');
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logContent').innerHTML = '<div class="text-gray-500">日志已清空</div>';
+            document.getElementById('logCount').textContent = '共 0 条';
+        }
+
+        function downloadLogs() {
+            const logs = document.getElementById('logContent').innerText;
+            const blob = new Blob([logs], {type: 'text/plain'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `logs_${new Date().toISOString()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            showToast('success', '下载成功', '日志文件已下载');
+        }
+
+        // Toast notification
+        function showToast(type, message, description = '') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastDescription = document.getElementById('toastDescription');
+            
+            // Set icon based on type
+            const icons = {
+                success: '<i class="fas fa-check-circle text-green-500 text-xl"></i>',
+                error: '<i class="fas fa-times-circle text-red-500 text-xl"></i>',
+                warning: '<i class="fas fa-exclamation-circle text-yellow-500 text-xl"></i>',
+                info: '<i class="fas fa-info-circle text-blue-500 text-xl"></i>'
+            };
+            
+            toastIcon.innerHTML = icons[type] || icons.info;
+            toastMessage.textContent = message;
+            toastDescription.textContent = description;
+            
+            // Show toast
+            toast.classList.remove('translate-x-full');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
