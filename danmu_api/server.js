@@ -358,11 +358,39 @@ function createProxyServer() {
     const queryObject = url.parse(req.url, true).query;
 
     if (queryObject.url) {
+      // 解析 PROXY_URL 配置（统一处理代理和反向代理）
+      const proxyConfig = process.env.PROXY_URL || '';
+      let forwardProxy = null;      // 正向代理（传统代理）
+      let bahamutRP = null;         // 巴哈姆特专用反代
+      let tmdbRP = null;            // TMDB专用反代
+      let universalRP = null;       // 万能反代
+
+      if (proxyConfig) {
+        // 支持多个配置，用逗号分隔
+        const proxyConfigs = proxyConfig.split(',').map(s => s.trim()).filter(s => s);
+        
+        for (const config of proxyConfigs) {
+          if (config.startsWith('bahamut@')) {
+            // 巴哈姆特专用反代：bahamut@http://example.com
+            bahamutRP = config.substring(8).trim().replace(/\/+$/, '');
+            console.log('[Proxy Server] Bahamut reverse proxy detected:', bahamutRP);
+          } else if (config.startsWith('tmdb@')) {
+            // TMDB专用反代：tmdb@http://example.com
+            tmdbRP = config.substring(5).trim().replace(/\/+$/, '');
+            console.log('[Proxy Server] TMDB reverse proxy detected:', tmdbRP);
+          } else if (config.startsWith('@')) {
+            // 万能反代：@http://example.com
+            universalRP = config.substring(1).trim().replace(/\/+$/, '');
+            console.log('[Proxy Server] Universal reverse proxy detected:', universalRP);
+          } else {
+            // 正向代理：http://proxy.com:port 或 socks5://proxy.com:port
+            forwardProxy = config.trim();
+            console.log('[Proxy Server] Forward proxy detected:', forwardProxy);
+          }
+        }
+      }
       const targetUrl = queryObject.url;
       console.log('[Proxy Server] Target URL:', targetUrl);
-
-      // 从环境变量获取代理配置
-      let proxyConfig = process.env.PROXY_URL;
       
       const originalUrlObj = new URL(targetUrl);
       let options = {
@@ -377,31 +405,62 @@ function createProxyServer() {
       
       let protocol = originalUrlObj.protocol === 'https:' ? https : http;
 
-      // 检查反代模式 (RP@)
-      if (proxyConfig && proxyConfig.startsWith("RP@")) {
-        console.log('[Proxy Server] Reverse proxy mode detected');
-        const reverseProxyUrlStr = proxyConfig.substring(3).trim().replace(/\/+$/, '');
-        
+      // 新反代优先级判断：专用反代 > 万能反代 > PROXY_URL代理
+      let finalReverseProxy = null;
+
+      // 1. 检查是否匹配巴哈姆特专用反代
+      if (bahamutRP && originalUrlObj.hostname.includes('gamer.com.tw')) {
+        finalReverseProxy = bahamutRP;
+        console.log('[Proxy Server] Using Bahamut-specific reverse proxy');
+      }
+      // 2. 检查是否匹配TMDB专用反代
+      else if (tmdbRP && originalUrlObj.hostname.includes('tmdb.org')) {
+        finalReverseProxy = tmdbRP;
+        console.log('[Proxy Server] Using TMDB-specific reverse proxy');
+      }
+      // 3. 检查万能反代
+      else if (universalRP) {
+        finalReverseProxy = universalRP;
+        console.log('[Proxy Server] Using universal reverse proxy');
+      }
+
+      // 应用反代逻辑
+      if (finalReverseProxy) {
         try {
-          const reverseUrlObj = new URL(reverseProxyUrlStr);
+          // 解析反向代理服务器的 URL，设置主机、端口和协议
+          const reverseUrlObj = new URL(finalReverseProxy);
           options.hostname = reverseUrlObj.hostname;
           options.port = reverseUrlObj.port || (reverseUrlObj.protocol === 'https:' ? 443 : 80);
-          // 路径合并：/reverse/proxy/path + /original/path?query
-          options.path = (reverseUrlObj.pathname.replace(/\/$/, '')) + originalUrlObj.pathname + originalUrlObj.search;
           protocol = reverseUrlObj.protocol === 'https:' ? https : http;
           
-          console.log(`[Proxy Server] Rewriting to RP: ${protocol === https ? 'https' : 'http'}://${options.hostname}:${options.port}${options.path}`);
+          const baseReversePath = reverseUrlObj.pathname.replace(/\/$/, '');
+          let logMessage = '';
+
+          // 根据反代类型构建不同的目标路径
+          if (finalReverseProxy === universalRP) {
+            // 万能反代：追加原始完整URL
+            // 路径格式：/反代路径/原始完整URL
+            options.path = baseReversePath + '/' + targetUrl.replace(':/', '');
+            logMessage = `[Proxy Server] Universal RP rewriting to: ${protocol === https ? 'https' : 'http'}://${options.hostname}:${options.port}${options.path}`;
+          } else {
+            // 专用反代：路径合并模式
+            // 路径合并：/反代路径 + /原始路径?query
+            options.path = baseReversePath + originalUrlObj.pathname + originalUrlObj.search;
+            logMessage = `[Proxy Server] Specific RP rewriting to: ${protocol === https ? 'https' : 'http'}://${options.hostname}:${options.port}${options.path}`;
+          }
+          
+          console.log(logMessage);
+
         } catch (e) {
-          console.error('[Proxy Server] Invalid RP@ URL:', reverseProxyUrlStr, e.message);
+          console.error('[Proxy Server] Invalid reverse proxy URL:', finalReverseProxy, e.message);
           res.statusCode = 500;
           res.end('Proxy Error: Invalid Reverse Proxy URL');
           return;
         }
-
-      } else if (proxyConfig) {
-        // 代理模式：使用 HttpsProxyAgent
-        console.log('[Proxy Server] Using proxy agent:', proxyConfig);
-        options.agent = new HttpsProxyAgent(proxyConfig);
+      } else if (forwardProxy) {
+        // 正向代理模式：使用 HttpsProxyAgent
+        console.log('[Proxy Server] Using forward proxy agent:', forwardProxy);
+        options.agent = new HttpsProxyAgent(forwardProxy);
       } else {
         // 直连模式
         console.log('[Proxy Server] No proxy configured, direct connection');

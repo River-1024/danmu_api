@@ -7,9 +7,10 @@ import {
     getSearchCache, removeEarliestAnime, setPreferByAnimeId, setSearchCache, storeAnimeIdsToMap
 } from "../utils/cache-util.js";
 import { formatDanmuResponse } from "../utils/danmu-util.js";
-import { extractTitle, convertChineseNumber, parseFileName, createDynamicPlatformOrder, normalizeSpaces } from "../utils/common-util.js";
+import { extractEpisodeTitle, convertChineseNumber, parseFileName, createDynamicPlatformOrder, normalizeSpaces } from "../utils/common-util.js";
 import Kan360Source from "../sources/kan360.js";
 import VodSource from "../sources/vod.js";
+import TmdbSource from "../sources/tmdb.js";
 import DoubanSource from "../sources/douban.js";
 import RenrenSource from "../sources/renren.js";
 import HanjutvSource from "../sources/hanjutv.js";
@@ -38,6 +39,7 @@ const mangoSource = new MangoSource();
 const bilibiliSource = new BilibiliSource();
 const otherSource = new OtherSource();
 const doubanSource = new DoubanSource(tencentSource, iqiyiSource, youkuSource, bilibiliSource);
+const tmdbSource = new TmdbSource(doubanSource);
 
 function matchSeason(anime, queryTitle, season) {
   const normalizedAnimeTitle = normalizeSpaces(anime.animeTitle);
@@ -71,6 +73,16 @@ function matchSeason(anime, queryTitle, season) {
 export async function searchAnime(url) {
   const queryTitle = url.searchParams.get("keyword");
   log("info", `Search anime with keyword: ${queryTitle}`);
+
+  // 关键字为空直接返回，不用多余查询
+  if (queryTitle === "") {
+    return jsonResponse({
+      errorCode: 0,
+      success: true,
+      errorMessage: "",
+      animes: [],
+    });
+  }
 
   // 检查搜索缓存
   const cachedResults = getSearchCache(queryTitle);
@@ -144,6 +156,7 @@ export async function searchAnime(url) {
     const requestPromises = globals.sourceOrderArr.map(source => {
       if (source === "360") return kan360Source.search(queryTitle);
       if (source === "vod") return vodSource.search(queryTitle);
+      if (source === "tmdb") return tmdbSource.search(queryTitle);
       if (source === "douban") return doubanSource.search(queryTitle);
       if (source === "renren") return renrenSource.search(queryTitle);
       if (source === "hanjutv") return hanjutvSource.search(queryTitle);
@@ -168,9 +181,9 @@ export async function searchAnime(url) {
 
     // 解构出返回的结果
     const {
-      vod: animesVodResults, 360: animes360, douban: animesDouban, renren: animesRenren, hanjutv: animesHanjutv,
-      bahamut: animesBahamut, tencent: animesTencent, youku: animesYouku, iqiyi: animesIqiyi, imgo: animesImgo,
-      bilibili: animesBilibili
+      vod: animesVodResults, 360: animes360, tmdb: animesTmdb, douban: animesDouban, renren: animesRenren,
+      hanjutv: animesHanjutv, bahamut: animesBahamut, tencent: animesTencent, youku: animesYouku, iqiyi: animesIqiyi,
+      imgo: animesImgo, bilibili: animesBilibili
     } = resultData;
 
     // 按顺序处理每个来源的结果
@@ -187,6 +200,9 @@ export async function searchAnime(url) {
             }
           }
         }
+      } else if (key === 'tmdb') {
+        // 等待处理TMDB来源
+        await tmdbSource.handleAnimes(animesTmdb, queryTitle, curAnimes);
       } else if (key === 'douban') {
         // 等待处理Douban来源
         await doubanSource.handleAnimes(animesDouban, queryTitle, curAnimes);
@@ -311,8 +327,8 @@ async function matchAniAndEp(season, episode, searchData, title, req, platform, 
         log("info", "过滤后的集标题", filteredEpisodes.map(episode => episode.episodeTitle));
 
         if (platform) {
-          const firstIndex = filteredEpisodes.findIndex(episode => extractTitle(episode.episodeTitle) === platform);
-          const indexCount = filteredEpisodes.filter(episode => extractTitle(episode.episodeTitle) === platform).length;
+          const firstIndex = filteredEpisodes.findIndex(episode => extractEpisodeTitle(episode.episodeTitle) === platform);
+          const indexCount = filteredEpisodes.filter(episode => extractEpisodeTitle(episode.episodeTitle) === platform).length;
           if (indexCount > 0 && indexCount >= episode) {
             // 先判断season
             if (matchSeason(anime, title, season)) {
@@ -345,8 +361,8 @@ async function matchAniAndEp(season, episode, searchData, title, req, platform, 
         log("info", bangumiData);
 
         if (platform) {
-          const firstIndex = bangumiData.bangumi.episodes.findIndex(episode => extractTitle(episode.episodeTitle) === platform);
-          const indexCount = bangumiData.bangumi.episodes.filter(episode => extractTitle(episode.episodeTitle) === platform).length;
+          const firstIndex = bangumiData.bangumi.episodes.findIndex(episode => extractEpisodeTitle(episode.episodeTitle) === platform);
+          const indexCount = bangumiData.bangumi.episodes.filter(episode => extractEpisodeTitle(episode.episodeTitle) === platform).length;
           if (indexCount > 0) {
             resEpisode = bangumiData.bangumi.episodes[firstIndex];
             resAnime = anime;
