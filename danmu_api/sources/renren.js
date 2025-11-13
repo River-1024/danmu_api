@@ -146,7 +146,8 @@ export default class RenrenSource extends BaseSource {
       headers['Host'] = this.API_CONFIG.DANMU_HOST;
 
       const resp = await httpGet(`https://${this.API_CONFIG.DANMU_HOST}${path}`, {
-        headers: headers
+        headers: headers,
+        retries: 1,
       });
 
       if (!resp.data) return null;
@@ -217,7 +218,8 @@ export default class RenrenSource extends BaseSource {
   async renrenHttpGet(url, { params = {}, headers = {} } = {}) {
     const u = updateQueryString(url, params)
     const resp = await httpGet(u, {
-        headers: headers,
+      headers: headers,
+      retries: 1,
     });
     return resp;
   }
@@ -230,7 +232,7 @@ export default class RenrenSource extends BaseSource {
     const deviceId = this.generateDeviceId();
     const headers = this.buildSignedHeaders({ method, url, params, deviceId });
     const resp = await httpGet(url + "?" + sortedQueryString(params), {
-        headers: headers,
+      headers: headers,
     });
     return resp;
   }

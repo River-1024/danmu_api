@@ -6,181 +6,258 @@ import { log } from './log-util.js'
 // =====================
 
 export async function httpGet(url, options = {}) {
+  // 从 options 中获取重试次数，默认为 0
+  const maxRetries = parseInt(options.retries || '0', 10) || 0;
+  let lastError;
 
-  log("info", `[请求模拟] HTTP GET: ${url}`);
-
-  // 设置超时时间（默认5秒）
-  const timeout = parseInt(globals.vodRequestTimeout || '5000', 10) || 5000;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        ...options.headers,
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    let data;
-
-    if (options.base64Data) {
-      log("info", "base64模式");
-
-      // 先拿二进制
-      const arrayBuffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-
-      // 转换为 Base64
-      let binary = '';
-      const chunkSize = 0x8000; // 分块防止大文件卡死
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        let chunk = uint8Array.subarray(i, i + chunkSize);
-        binary += String.fromCharCode.apply(null, chunk);
-      }
-      data = btoa(binary); // 得到 base64 字符串
-
-    } else if (options.zlibMode) {
-      log("info", "zlib模式")
-
-      // 获取 ArrayBuffer
-      const arrayBuffer = await response.arrayBuffer();
-
-      // 使用 DecompressionStream 进行解压
-      // "deflate" 对应 zlib 的 inflate
-      const decompressionStream = new DecompressionStream("deflate");
-      const decompressedStream = new Response(
-        new Blob([arrayBuffer]).stream().pipeThrough(decompressionStream)
-      );
-
-      // 读取解压后的文本
-      let decodedData;
-      try {
-        decodedData = await decompressedStream.text();
-      } catch (e) {
-        log("error", "[请求模拟] 解压缩失败", e);
-        throw e;
-      }
-
-      data = decodedData; // 更新解压后的数据
+  // 执行请求，包含重试逻辑
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      log("info", `[请求模拟] 第 ${attempt} 次重试: ${url}`);
+      // 可选：添加重试延迟（指数退避）
+      await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000)));
     } else {
-      data = await response.text();
+      log("info", `[请求模拟] HTTP GET: ${url}`);
     }
 
-    let parsedData;
+    // 设置超时时间（默认5秒）
+    const timeout = parseInt(globals.vodRequestTimeout || '5000', 10) || 5000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
     try {
-      parsedData = JSON.parse(data);  // 尝试将文本解析为 JSON
-    } catch (e) {
-      parsedData = data;  // 如果解析失败，保留原始文本
-    }
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          ...options.headers,
+        },
+        signal: controller.signal
+      });
 
-    // 获取所有 headers，但特别处理 set-cookie
-    const headers = {};
-    let setCookieValues = [];
+      clearTimeout(timeoutId);
 
-    // 遍历 headers 条目
-    for (const [key, value] of response.headers.entries()) {
-      if (key.toLowerCase() === 'set-cookie') {
-        setCookieValues.push(value);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      let data;
+
+      if (options.base64Data) {
+        log("info", "base64模式");
+
+        // 先拿二进制
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        // 转换为 Base64
+        let binary = '';
+        const chunkSize = 0x8000; // 分块防止大文件卡死
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          let chunk = uint8Array.subarray(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, chunk);
+        }
+        data = btoa(binary); // 得到 base64 字符串
+
+      } else if (options.zlibMode) {
+        log("info", "zlib模式")
+
+        // 获取 ArrayBuffer
+        const arrayBuffer = await response.arrayBuffer();
+
+        // 使用 DecompressionStream 进行解压
+        // "deflate" 对应 zlib 的 inflate
+        const decompressionStream = new DecompressionStream("deflate");
+        const decompressedStream = new Response(
+          new Blob([arrayBuffer]).stream().pipeThrough(decompressionStream)
+        );
+
+        // 读取解压后的文本
+        let decodedData;
+        try {
+          decodedData = await decompressedStream.text();
+        } catch (e) {
+          log("error", "[请求模拟] 解压缩失败", e);
+          throw e;
+        }
+
+        data = decodedData; // 更新解压后的数据
       } else {
-        headers[key] = value;
+        data = await response.text();
+      }
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(data);  // 尝试将文本解析为 JSON
+      } catch (e) {
+        parsedData = data;  // 如果解析失败，保留原始文本
+      }
+
+      // 获取所有 headers，但特别处理 set-cookie
+      const headers = {};
+      let setCookieValues = [];
+
+      // 遍历 headers 条目
+      for (const [key, value] of response.headers.entries()) {
+        if (key.toLowerCase() === 'set-cookie') {
+          setCookieValues.push(value);
+        } else {
+          headers[key] = value;
+        }
+      }
+
+      // 如果存在 set-cookie 头，将其合并为分号分隔的字符串
+      if (setCookieValues.length > 0) {
+        headers['set-cookie'] = setCookieValues.join(';');
+      }
+
+      // 请求成功，返回结果
+      if (attempt > 0) {
+        log("info", `[请求模拟] 重试成功`);
+      }
+
+      // 模拟 iOS 环境：返回 { data: ... } 结构
+      return {
+        data: parsedData,
+        status: response.status,
+        headers: headers
+      };
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+
+      // 检查是否是超时错误
+      if (error.name === 'AbortError') {
+        log("error", `[请求模拟] 请求超时:`, error.message);
+        log("error", '详细诊断:');
+        log("error", '- URL:', url);
+        log("error", '- 超时时间:', `${timeout}ms`);
+        log("error", `- 当前尝试: ${attempt + 1}/${maxRetries + 1}`);
+      } else {
+        log("error", `[请求模拟] 请求失败:`, error.message);
+        log("error", '详细诊断:');
+        log("error", '- URL:', url);
+        log("error", '- 错误类型:', error.name);
+        log("error", '- 消息:', error.message);
+        log("error", `- 当前尝试: ${attempt + 1}/${maxRetries + 1}`);
+        if (error.cause) {
+          log("error", '- 码:', error.cause.code);
+          log("error", '- 原因:', error.cause.message);
+        }
+      }
+
+      // 如果还有重试机会，继续循环；否则在循环结束后抛出错误
+      if (attempt < maxRetries) {
+        log("info", `[请求模拟] 准备重试...`);
+        continue;
       }
     }
-
-    // 如果存在 set-cookie 头，将其合并为分号分隔的字符串
-    if (setCookieValues.length > 0) {
-      headers['set-cookie'] = setCookieValues.join(';');
-    }
-    // 模拟 iOS 环境：返回 { data: ... } 结构
-    return {
-      data: parsedData,
-      status: response.status,
-      headers: headers
-    };
-
-  } catch (error) {
-    clearTimeout(timeoutId);
-
-    // 检查是否是超时错误
-    if (error.name === 'AbortError') {
-      log("error", `[请求模拟] 请求超时:`, error.message);
-      log("error", '详细诊断:');
-      log("error", '- URL:', url);
-      log("error", '- 超时时间:', `${timeout}ms`);
-      throw new Error(`Request timeout after ${timeout}ms`);
-    }
-
-    log("error", `[请求模拟] 请求失败:`, error.message);
-    log("error", '详细诊断:');
-    log("error", '- URL:', url);
-    log("error", '- 错误类型:', error.name);
-    log("error", '- 消息:', error.message);
-    if (error.cause) {
-      log("error", '- 码:', error.cause.code);  // e.g., 'ECONNREFUSED', 'ETIMEDOUT', 'ECONNRESET'
-      log("error", '- 原因:', error.cause.message);
-    }
-    throw error;
   }
+
+  // 所有重试都失败，抛出最后一个错误
+  log("error", `[请求模拟] 所有重试均失败 (${maxRetries + 1} 次尝试)`);
+  throw lastError;
 }
 
 export async function httpPost(url, body, options = {}) {
-  log("info", `[请求模拟] HTTP POST: ${url}`);
+  // 从 options 中获取重试次数，默认为 0
+  const maxRetries = parseInt(options.retries || '0', 10) || 0;
+  let lastError;
 
-  // 处理请求头、body 和其他参数
-  const { headers = {}, params, allow_redirects = true } = options;
-  const fetchOptions = {
-    method: 'POST',
-    headers: {
-      ...headers,
-    },
-    body: body
-  };
-
-  if (!allow_redirects) {
-    fetchOptions.redirect = 'manual';  // 禁止重定向
-  }
-
-  try {
-    const response = await fetch(url, fetchOptions);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  // 执行请求，包含重试逻辑
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      log("info", `[请求模拟] 第 ${attempt} 次重试: ${url}`);
+      // 可选：添加重试延迟（指数退避）
+      await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000)));
+    } else {
+      log("info", `[请求模拟] HTTP POST: ${url}`);
     }
 
-    const data = await response.text();
-    let parsedData;
-    try {
-      parsedData = JSON.parse(data);  // 尝试将文本解析为 JSON
-    } catch (e) {
-      parsedData = data;  // 如果解析失败，保留原始文本
-    }
+    // 设置超时时间（默认5秒）
+    const timeout = parseInt(globals.vodRequestTimeout || '5000', 10) || 5000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    // 模拟 iOS 环境：返回 { data: ... } 结构
-    return {
-      data: parsedData,
-      status: response.status,
-      headers: Object.fromEntries(response.headers.entries())
+    // 处理请求头、body 和其他参数
+    const { headers = {}, params, allow_redirects = true } = options;
+    const fetchOptions = {
+      method: 'POST',
+      headers: {
+        ...headers,
+      },
+      body: body,
+      signal: controller.signal
     };
 
-  } catch (error) {
-    log("error", `[请求模拟] 请求失败:`, error.message);
-    log("error", '详细诊断:');
-    log("error", '- URL:', url);
-    log("error", '- 错误类型:', error.name);
-    log("error", '- 消息:', error.message);
-    if (error.cause) {
-      log("error", '- 码:', error.cause.code);  // e.g., 'ECONNREFUSED', 'ETIMEDOUT', 'ECONNRESET'
-      log("error", '- 原因:', error.cause.message);
+    if (!allow_redirects) {
+      fetchOptions.redirect = 'manual';  // 禁止重定向
     }
-    throw error;
+
+    try {
+      const response = await fetch(url, fetchOptions);
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.text();
+      let parsedData;
+      try {
+        parsedData = JSON.parse(data);  // 尝试将文本解析为 JSON
+      } catch (e) {
+        parsedData = data;  // 如果解析失败，保留原始文本
+      }
+
+      // 请求成功，返回结果
+      if (attempt > 0) {
+        log("info", `[请求模拟] 重试成功`);
+      }
+
+      // 模拟 iOS 环境：返回 { data: ... } 结构
+      return {
+        data: parsedData,
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries())
+      };
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+
+      // 检查是否是超时错误
+      if (error.name === 'AbortError') {
+        log("error", `[请求模拟] 请求超时:`, error.message);
+        log("error", '详细诊断:');
+        log("error", '- URL:', url);
+        log("error", '- 超时时间:', `${timeout}ms`);
+        log("error", `- 当前尝试: ${attempt + 1}/${maxRetries + 1}`);
+      } else {
+        log("error", `[请求模拟] 请求失败:`, error.message);
+        log("error", '详细诊断:');
+        log("error", '- URL:', url);
+        log("error", '- 错误类型:', error.name);
+        log("error", '- 消息:', error.message);
+        log("error", `- 当前尝试: ${attempt + 1}/${maxRetries + 1}`);
+        if (error.cause) {
+          log("error", '- 码:', error.cause.code);
+          log("error", '- 原因:', error.cause.message);
+        }
+      }
+
+      // 如果还有重试机会，继续循环；否则在循环结束后抛出错误
+      if (attempt < maxRetries) {
+        log("info", `[请求模拟] 准备重试...`);
+        continue;
+      }
+    }
   }
+
+  // 所有重试都失败，抛出最后一个错误
+  log("error", `[请求模拟] 所有重试均失败 (${maxRetries + 1} 次尝试)`);
+  throw lastError;
 }
 
 export async function getPageTitle(url) {

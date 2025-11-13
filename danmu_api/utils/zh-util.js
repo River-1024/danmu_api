@@ -30,3 +30,11 @@ export function simplized(cc){
     }
     return str;
 }
+
+export function isNonChinese(str) {
+  // 匹配任何中文字符（Unicode 范围）
+  // \u4e00-\u9fff 涵盖常用汉字（CJK 统一表意文字）
+  // 更完整可包括 \u3400-\u4dbf 等扩展区，但通常 \u4e00-\u9fff 足够
+  const chineseRegex = /[\u4e00-\u9fff]/;
+  return !chineseRegex.test(str);
+}

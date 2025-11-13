@@ -8,6 +8,7 @@ import {
 } from "../utils/cache-util.js";
 import { formatDanmuResponse } from "../utils/danmu-util.js";
 import { extractEpisodeTitle, convertChineseNumber, parseFileName, createDynamicPlatformOrder, normalizeSpaces } from "../utils/common-util.js";
+import { getTMDBChineseTitle } from "../utils/tmdb-util.js";
 import Kan360Source from "../sources/kan360.js";
 import VodSource from "../sources/vod.js";
 import TmdbSource from "../sources/tmdb.js";
@@ -310,7 +311,8 @@ async function matchAniAndEp(season, episode, searchData, title, req, platform, 
     // 判断剧集
     const normalizedTitle = normalizeSpaces(title);
     for (const anime of searchData.animes) {
-      if (globals.rememberLastSelect && preferAnimeId && anime.bangumiId.toString() !== preferAnimeId.toString()) continue;
+      if (globals.rememberLastSelect && preferAnimeId && anime.bangumiId.toString() !== preferAnimeId.toString() &&
+          anime.animeId.toString() !== preferAnimeId.toString()) continue;
       if (normalizeSpaces(anime.animeTitle).includes(normalizedTitle)) {
         let originBangumiUrl = new URL(req.url.replace("/match", `bangumi/${anime.bangumiId}`));
         const bangumiRes = await getBangumi(originBangumiUrl.pathname);
@@ -462,6 +464,12 @@ export async function matchAnime(url, req) {
       title = titleMatch ? titleMatch[1].replace(/[._]/g, ' ').trim() : cleanFileName;
       season = null;
       episode = null;
+    }
+
+    // 如果外语标题转换中文开关已开启，则尝试获取中文标题
+    if (globals.titleToChinese) {
+      // 如果title中包含.，则用空格替换
+      title = await getTMDBChineseTitle(title.replace('.', ' '), season, episode);
     }
 
     log("info", "Parsed title, season, episode", { title, season, episode });

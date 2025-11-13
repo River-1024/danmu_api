@@ -360,6 +360,7 @@ export default class BahamutSource extends BaseSource {
           "Content-Type": "application/json",
           "User-Agent": "Anime/2.29.2 (7N5749MM3F.tw.com.gamer.anime; build:972; iOS 26.0.0) Alamofire/5.6.4",
         },
+        retries: 1,
       });
 
       // 将当前请求的 episodes 拼接到总数组

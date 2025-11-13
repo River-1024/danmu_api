@@ -80,6 +80,36 @@ export function groupDanmusByMinute(filteredDanmus, n) {
   return result.flat().sort((a, b) => a.t - b.t);
 }
 
+
+export function limitDanmusByCount(filteredDanmus, danmuLimit) {
+  // 如果 danmuLimit 为 0，直接返回原始数据
+  if (danmuLimit === 0) {
+    return filteredDanmus;
+  }
+
+  // 计算目标弹幕数量
+  const targetCount = danmuLimit * 1000;
+  const totalCount = filteredDanmus.length;
+
+  // 如果当前弹幕数不超过目标数量，直接返回
+  if (totalCount <= targetCount) {
+    return filteredDanmus;
+  }
+
+  // 计算采样间隔
+  const interval = totalCount / targetCount;
+
+  // 按间隔抽取弹幕
+  const result = [];
+  for (let i = 0; i < targetCount; i++) {
+    // 计算当前应该取的索引位置
+    const index = Math.floor(i * interval);
+    result.push(filteredDanmus[index]);
+  }
+
+  return result;
+}
+
 export function convertToDanmakuJson(contents, platform) {
   let danmus = [];
   let cidCounter = 1;
@@ -195,8 +225,9 @@ export function convertToDanmakuJson(contents, platform) {
   log("info", `去重分钟数: ${globals.groupMinute}`);
   const groupedDanmus = groupDanmusByMinute(filteredDanmus, globals.groupMinute);
 
-  // 应用弹幕转换规则（在去重之后）
-  let convertedDanmus = groupedDanmus;
+  
+  // 应用弹幕转换规则（在去重和限制弹幕数之后）
+  let convertedDanmus = limitDanmusByCount(groupedDanmus, globals.danmuLimit);
   if (globals.convertTopBottomToScroll || globals.convertColorToWhite || globals.enableRandomColorDanmu || globals.enableColorCycleDanmu) {
     let topBottomCount = 0;
     let colorCount = 0;
@@ -275,6 +306,7 @@ export function convertToDanmakuJson(contents, platform) {
   log("info", `danmus_original: ${danmus.length}`);
   log("info", `danmus_filter: ${filteredDanmus.length}`);
   log("info", `danmus_group: ${groupedDanmus.length}`);
+  log("info", `danmus_limit: ${convertedDanmus.length}`);
   // 输出前五条弹幕
   log("info", "Top 5 danmus:", JSON.stringify(convertedDanmus.slice(0, 5), null, 2));
   return convertedDanmus;

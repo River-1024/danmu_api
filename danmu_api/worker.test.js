@@ -8,7 +8,7 @@ import { handleRequest } from './worker.js';
 import { getBangumi, getComment, searchAnime } from "./apis/dandan-api.js";
 import { getRedisKey, pingRedis, setRedisKey, setRedisKeyWithExpiry } from "./utils/redis-util.js";
 import { getImdbepisodes } from "./utils/imdb-util.js";
-import { getTmdbJpDetail, searchTmdbTitles } from "./utils/tmdb-util.js";
+import { getTMDBChineseTitle, getTmdbJpDetail, searchTmdbTitles } from "./utils/tmdb-util.js";
 import { getDoubanDetail, getDoubanInfoByImdbId, searchDoubanTitles } from "./utils/douban-util.js";
 import RenrenSource from "./sources/renren.js";
 import HanjutvSource from "./sources/hanjutv.js";
@@ -271,5 +271,11 @@ test('worker.js API endpoints', async (t) => {
   //   const res = await getDoubanInfoByImdbId("tt0071562");
   //   const doubanId = res.data?.id?.split("/")?.pop();
   //   assert(doubanId === "1299131", `Expected doubanId === 1299131, but got ${doubanId}`);
+  // });
+
+  // // 测试tmdb获取中文标题
+  // await t.test('GET TMDB Chinese title', async () => {
+  //   const res = await getTMDBChineseTitle("Blood River", 1, 4);
+  //   assert(res === "暗河传", `Expected res === "暗河传", but got ${res}`);
   // });
 });

@@ -1,6 +1,7 @@
 import { globals } from '../configs/globals.js';
 import { log } from './log-util.js'
 import { httpGet } from "./http-util.js";
+import { isNonChinese } from "./zh-util.js";
 
 // ---------------------
 // TMDB API 工具方法
@@ -34,8 +35,8 @@ async function tmdbApiGet(url) {
 }
 
 // 使用 TMDB API 查询片名
-export async function searchTmdbTitles(title) {
-  const url = `search/multi?api_key=${globals.tmdbApiKey}&query=${encodeURIComponent(title)}&language=zh-CN`;
+export async function searchTmdbTitles(title, mediaType = "multi") {
+  const url = `search/${mediaType}?api_key=${globals.tmdbApiKey}&query=${encodeURIComponent(title)}&language=zh-CN`;
   return await tmdbApiGet(url);
 }
 
@@ -227,5 +228,59 @@ export async function getTmdbJaOriginalTitle(title, signal = null) {
       stack: error.stack,
     });
     return null;
+  }
+}
+
+/**
+ * 查询 TMDB 获取中文标题
+ * @param {string} title - 标题
+ * @param {number|string} season - 季数（可选）
+ * @param {number|string} episode - 集数（可选）
+ * @returns {Promise<string>} 返回中文标题，如果查询失败则返回原标题
+ */
+export async function getTMDBChineseTitle(title, season = null, episode = null) {
+  // 如果包含中文，直接返回原标题
+  if (!isNonChinese(title)) {
+    return title;
+  }
+
+  // 判断是电影还是电视剧
+  const isTV = season !== null && season !== undefined;
+  const mediaType = isTV ? 'tv' : 'movie';
+
+  try {
+    // 搜索媒体内容
+    const searchResponse = await searchTmdbTitles(title, mediaType);
+
+    // 检查是否有结果
+    if (!searchResponse.data.results || searchResponse.data.results.length === 0) {
+      log("info", '[TMDB] TMDB未找到任何结果');
+      return title;
+    }
+
+    // 获取第一个匹配结果的 ID
+    // 查找第一个 name/title 包含中文的结果
+    const firstResult = searchResponse.data.results.find(result => {
+      const resultName = isTV ? result.name : result.title;
+      return resultName && !isNonChinese(resultName);
+    });
+
+    // 如果没有找到包含中文的结果，使用第一个结果
+    const selectedResult = firstResult || searchResponse.data.results[0];
+
+    // 电视剧使用 name 字段，电影使用 title 字段
+    const chineseTitle = isTV ? selectedResult.name : selectedResult.title;
+
+    // 如果有中文标题则返回，否则返回原标题
+    if (chineseTitle) {
+      log("info", `原标题: ${title} -> 中文标题: ${chineseTitle}`);
+      return chineseTitle;
+    } else {
+      return title;
+    }
+
+  } catch (error) {
+    log("error", '查询 TMDB 时出错:', error);
+    return title;
   }
 }

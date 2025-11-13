@@ -638,6 +638,7 @@ export default class BilibiliSource extends BaseSource {
                 "Cookie": globals.bilibliCookie
               },
               base64Data: true,
+              retries: 1,
             });
 
             return parseDanmakuBase64(res.data);
