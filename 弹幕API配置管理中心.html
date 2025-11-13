@@ -33,6 +33,15 @@
             }
         }
         
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
         .slide-in {
             animation: slideIn 0.3s ease-out;
         }
@@ -97,7 +106,7 @@
         }
         
         .config-section {
-            scroll-margin-top: 80px; /* Offset for sticky header */
+            scroll-margin-top: 80px;
         }
         
         .tooltip {
@@ -144,15 +153,21 @@
         
         .reset-btn {
             position: absolute;
-            right: 36px;
-            top: 8px;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
             color: #94a3b8;
             cursor: pointer;
             transition: all 0.2s;
+            padding: 8px;
+            background: transparent;
+            border: none;
         }
         
         .reset-btn:hover {
             color: #3b82f6;
+            background: #f0f9ff;
+            border-radius: 4px;
         }
         
         /* 自定义复选框样式 */
@@ -161,12 +176,28 @@
         }
         
         .custom-checkbox-label {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             cursor: pointer;
             user-select: none;
             font-size: 14px;
             color: #374151;
+            padding: 12px 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .custom-checkbox-label:hover {
+            background: #f3f4f6;
+            transform: translateX(2px);
+        }
+        
+        .custom-checkbox:checked + .custom-checkbox-label {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1px solid #bfdbfe;
         }
         
         .checkbox-square {
@@ -174,7 +205,7 @@
             height: 20px;
             border: 2px solid #d1d5db;
             border-radius: 4px;
-            margin-right: 8px;
+            margin-right: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -184,6 +215,13 @@
         .custom-checkbox:checked + .custom-checkbox-label .checkbox-square {
             background-color: #3b82f6;
             border-color: #3b82f6;
+            animation: checkPulse 0.3s ease;
+        }
+        
+        @keyframes checkPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
         
         .checkbox-icon {
@@ -196,10 +234,20 @@
             display: block;
         }
         
+        .checkbox-text {
+            flex: 1;
+        }
+        
+        .checkbox-desc {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        
         /* 导航栏活动状态 */
         .nav-link {
             transition: all 0.3s ease;
-            border-left: 3px solid transparent; /* default border */
+            border-left: 3px solid transparent;
         }
         
         .nav-link.active {
@@ -216,14 +264,32 @@
 
         /* 顶部导航按钮的活跃状态 */
         #header-logs-btn.active {
-            background-color: #dbeafe; /* Tailwind blue-100 */
-            color: #3b82f6; /* Tailwind blue-600 */
+            background-color: #dbeafe;
+            color: #3b82f6;
             font-weight: 500;
         }
         #header-config-btn.active {
-            background-color: #dbeafe; /* Tailwind blue-100 */
-            color: #3b82f6; /* Tailwind blue-600 */
+            background-color: #dbeafe;
+            color: #3b82f6;
             font-weight: 500;
+        }
+
+        /* 浮动动画 */
+        .float-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* 标签样式 */
+        .feature-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
         }
     </style>
 </head>
@@ -233,8 +299,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-3">
-                    <i class="fas fa-terminal text-2xl text-blue-600"></i>
+                    <i class="fas fa-terminal text-2xl text-blue-600 float-animation"></i>
                     <h1 class="text-xl font-bold text-gray-900">弹幕API配置管理中心</h1>
+                    <span class="feature-tag">PRO</span>
                 </div>
                 <div class="flex items-center space-x-4">
                     <button onclick="switchView('config')" id="header-config-btn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors btn-hover active">
@@ -257,18 +324,42 @@
                 <div class="bg-white rounded-lg shadow-sm p-4 sticky top-24">
                     <h3 class="font-medium text-gray-900 mb-3">配置分类</h3>
                     <nav class="space-y-1" id="sidebar-nav">
-                        <a href="#basic-config" class="nav-link active block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">基础配置</a>
-                        <a href="#vod-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">VOD配置</a>
-                        <a href="#source-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">源排序配置</a>
-                        <a href="#danmu-filter" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">弹幕过滤</a>
-                        <a href="#danmu-process" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">弹幕处理</a>
-                        <a href="#output-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">输出配置</a>
-                        <a href="#rate-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">限流配置</a>
-                        <a href="#log-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">日志配置</a>
-                        <a href="#cache-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">缓存配置</a>
-                        <a href="#proxy-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">代理配置</a>
-                        <a href="#tmdb-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">TMDB配置</a>
-                        <a href="#redis-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">Redis配置</a>
+                        <a href="#basic-config" class="nav-link active block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-server mr-2 w-4"></i>基础配置
+                        </a>
+                        <a href="#vod-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-tv mr-2 w-4"></i>VOD配置
+                        </a>
+                        <a href="#source-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-list-ol mr-2 w-4"></i>源排序配置
+                        </a>
+                        <a href="#danmu-filter" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-filter mr-2 w-4"></i>弹幕过滤
+                        </a>
+                        <a href="#danmu-process" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-cogs mr-2 w-4"></i>弹幕处理
+                        </a>
+                        <a href="#output-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-file-export mr-2 w-4"></i>输出配置
+                        </a>
+                        <a href="#rate-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-tachometer-alt mr-2 w-4"></i>限流配置
+                        </a>
+                        <a href="#log-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-file-alt mr-2 w-4"></i>日志配置
+                        </a>
+                        <a href="#cache-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-database mr-2 w-4"></i>缓存配置
+                        </a>
+                        <a href="#proxy-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-shield-alt mr-2 w-4"></i>代理配置
+                        </a>
+                        <a href="#tmdb-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-film mr-2 w-4"></i>TMDB配置
+                        </a>
+                        <a href="#redis-config" class="nav-link block px-3 py-2 text-sm rounded-md text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-leaf mr-2 w-4"></i>Redis配置
+                        </a>
                     </nav>
                 </div>
             </div>
@@ -347,8 +438,8 @@
                                     </label>
                                     <div class="relative">
                                         <input type="password" id="TOKEN" value="87654321" 
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
-                                        <button onclick="togglePassword('TOKEN')" class="absolute right-10 top-2.5 text-gray-400 hover:text-gray-600">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                        <button onclick="togglePassword('TOKEN')" class="absolute right-12 top-2.5 text-gray-400 hover:text-gray-600">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         <button onclick="resetField('TOKEN', '87654321')" class="reset-btn">
@@ -363,7 +454,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="url" id="OTHER_SERVER" value="https://api.danmu.icu" 
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                         <button onclick="resetField('OTHER_SERVER', 'https://api.danmu.icu')" class="reset-btn">
                                             <i class="fas fa-undo"></i>
                                         </button>
@@ -376,7 +467,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="text" id="BILIBILI_COOKIE" value="" 
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                     </div>
                                 </div>
                                 <div class="relative">
@@ -386,7 +477,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="number" id="YOUKU_CONCURRENCY" value="8" min="1" max="16"
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                         <button onclick="resetField('YOUKU_CONCURRENCY', '8')" class="reset-btn">
                                             <i class="fas fa-undo"></i>
                                         </button>
@@ -411,7 +502,7 @@
                                     </label>
                                     <div class="relative">
                                         <textarea id="VOD_SERVERS" rows="3" 
-                                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">金蝉@https://zy.jinchancaiji.com,789@https://www.caiji.cyou,听风@https://gctf.tfdh.top</textarea>
+                                                  class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">金蝉@https://zy.jinchancaiji.com,789@https://www.caiji.cyou,听风@https://gctf.tfdh.top</textarea>
                                         <button onclick="resetField('VOD_SERVERS', '金蝉@https://zy.jinchancaiji.com,789@https://www.caiji.cyou,听风@https://gctf.tfdh.top')" class="reset-btn">
                                             <i class="fas fa-undo"></i>
                                         </button>
@@ -435,7 +526,7 @@
                                         </label>
                                         <div class="relative">
                                             <input type="number" id="VOD_REQUEST_TIMEOUT" value="10000" min="1000" max="30000" step="1000"
-                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                                   class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                             <button onclick="resetField('VOD_REQUEST_TIMEOUT', '10000')" class="reset-btn">
                                                 <i class="fas fa-undo"></i>
                                             </button>
@@ -461,7 +552,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="text" id="SOURCE_ORDER" value="360,vod,renren,hanjutv"
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                         <button onclick="resetField('SOURCE_ORDER', '360,vod,renren,hanjutv')" class="reset-btn">
                                             <i class="fas fa-undo"></i>
                                         </button>
@@ -475,33 +566,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="text" id="PLATFORM_ORDER" value="" placeholder="qiyi, bilibili1, imgo, youku, qq, renren, hanjutv, bahamut"
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
-                                    </div>
-                                </div>
-                                <div class="relative">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        剧集标题过滤正则表达式
-                                        <span class="text-gray-400 text-xs ml-2">(用于过滤花絮、预告等)</span>
-                                        <div class="tooltip inline-block ml-1">
-                                            <i class="fas fa-question-circle text-gray-400"></i>
-                                            <span class="tooltiptext">
-                                                # 剧集标题过滤正则表达式（用于过滤花絮、预告等非正片内容）<br>
-                                                # 默认值：下方完整规则<br>
-                                                # 说明：<br>
-                                                #   - 如果设置了此环境变量，将完全覆盖默认的过滤规则（不是增量添加）<br>
-                                                #   - 格式：使用 | 分隔多个关键词，例如：预告|花絮|特辑|番外<br>
-                                                #   - 可以直接修改下方规则，按需增删关键词<br>
-                                                # 示例：只过滤预告和花絮<br>
-                                                #   EPISODE_TITLE_FILTER=预告|花絮
-                                            </span>
-                                        </div>
-                                    </label>
-                                    <div class="relative">
-                                        <textarea id="EPISODE_TITLE_FILTER" rows="4" 
-                                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">(特别|惊喜|纳凉)?企划|合伙人手记|超前(营业|vlog)?|速览|vlog|reaction|纯享|加更(版|篇)?|抢先(看|版|集|篇)?|抢鲜|预告|花絮(独家)?|特辑|彩蛋|专访|幕后(故事|花絮|独家)?|直播(陪看|回顾)?|未播(片段)?|衍生|番外|会员(专享|加长|尊享|专属|版)?|片花|精华|看点|速看|解读|影评|解说|吐槽|盘点|拍摄花絮|制作花絮|幕后花絮|未播花絮|独家花絮|花絮特辑|先导预告|终极预告|正式预告|官方预告|彩蛋片段|删减片段|未播片段|番外彩蛋|精彩片段|精彩看点|精彩回顾|精彩集锦|看点解析|看点预告|NG镜头|NG花絮|番外篇|番外特辑|制作特辑|拍摄特絮|幕后特辑|导演特辑|演员特辑|片尾曲|插曲|高光回顾|背景音乐|OST|音乐MV|歌曲MV|前季回顾|剧情回顾|往期回顾|内容总结|剧情盘点|精选合集|剪辑合集|混剪视频|独家专访|演员访谈|导演访谈|主创访谈|媒体采访|发布会采访|采访|陪看(记)?|试看版|短剧|精编|Plus|独家版|特别版|短片|发布会|解忧局|走心局|火锅局|巅峰时刻|坞里都知道|福持目标坞民|观察室|上班那点事儿|周top|赛段|直拍|REACTION|VLOG|全纪录|开播|先导|总宣|展演|集锦|旅行日记|精彩分享|剧情揭秘</textarea>
-                                        <button onclick="resetField('EPISODE_TITLE_FILTER', '(特别|惊喜|纳凉)?企划|合伙人手记|超前(营业|vlog)?|速览|vlog|reaction|纯享|加更(版|篇)?|抢先(看|版|集|篇)?|抢鲜|预告|花絮(独家)?|特辑|彩蛋|专访|幕后(故事|花絮|独家)?|直播(陪看|回顾)?|未播(片段)?|衍生|番外|会员(专享|加长|尊享|专属|版)?|片花|精华|看点|速看|解读|影评|解说|吐槽|盘点|拍摄花絮|制作花絮|幕后花絮|未播花絮|独家花絮|花絮特辑|先导预告|终极预告|正式预告|官方预告|彩蛋片段|删减片段|未播片段|番外彩蛋|精彩片段|精彩看点|精彩回顾|精彩集锦|看点解析|看点预告|NG镜头|NG花絮|番外篇|番外特辑|制作特辑|拍摄特絮|幕后特辑|导演特辑|演员特辑|片尾曲|插曲|高光回顾|背景音乐|OST|音乐MV|歌曲MV|前季回顾|剧情回顾|往期回顾|内容总结|剧情盘点|精选合集|剪辑合集|混剪视频|独家专访|演员访谈|导演访谈|主创访谈|媒体采访|发布会采访|采访|陪看(记)?|试看版|短剧|精编|Plus|独家版|特别版|短片|发布会|解忧局|走心局|火锅局|巅峰时刻|坞里都知道|福持目标坞民|观察室|上班那点事儿|周top|赛段|直拍|REACTION|VLOG|全纪录|开播|先导|总宣|展演|集锦|旅行日记|精彩分享|剧情揭秘')" class="reset-btn">
-                                            <i class="fas fa-undo"></i>
-                                        </button>
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                     </div>
                                 </div>
                             </div>
@@ -516,6 +581,33 @@
                                 </h3>
                             </div>
                             <div class="p-6 space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <input type="checkbox" id="ENABLE_EPISODE_FILTER" class="custom-checkbox">
+                                        <label for="ENABLE_EPISODE_FILTER" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">启用集标题过滤</div>
+                                                <div class="checkbox-desc">在手动选择接口中过滤剧集标题</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <input type="checkbox" id="STRICT_TITLE_MATCH" class="custom-checkbox">
+                                        <label for="STRICT_TITLE_MATCH" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">严格标题匹配模式</div>
+                                                <div class="checkbox-desc">启用更精确的标题匹配</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
                                 <div class="relative">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">
                                         屏蔽词列表
@@ -534,34 +626,10 @@
                                     </label>
                                     <div class="relative">
                                         <textarea id="BLOCKED_WORDS" rows="6" 
-                                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">/.{20,}/,/^\\d{2,4}[-/.]\\d{1,2}[-/.]\\d{1,2}([日号.]*)?$/,/^(?!哈+$)([a-zA-Z\\u4e00-\\u9fa5])\\1{2,}/,/[0-9]+\\.*[0-9]*\\s*(w|万)+\\s*(\\+|个|人|在看)+/,/^[a-z]{6,}$/,/^(?:qwertyuiop|asdfghjkl|zxcvbnm)$/,/^\\d{5,}$/,/^(\\d)\\1{2,}$/,/\\d{1,4}/,/(20[0-3][0-9])/,/(0?[1-9]|1[0-2])月/,/\\d{1,2}[.-]\\d{1,2}/,/[@#&$%^*+\\|/\\-_=<>°◆◇■□●○★☆▼▲♥♦♠♣①②③④⑤⑥⑦⑧⑨⑩]/,/[一二三四五六七八九十百\\d]+刷/,/第[一二三四五六七八九十百\\d]+/,/(全体成员|报到|报道|来啦|签到|刷|打卡|我在|来了|考古|爱了|挖坟|留念|你好|回来|哦哦|重温|复习|重刷|再看|在看|前排|沙发|有人看|板凳|末排|我老婆|我老公|撅了|后排|周目|重看|包养|DVD|同上|同样|我也是|俺也|算我|爱豆|我家爱豆|我家哥哥|加我|三连|币|新人|入坑|补剧|冲了|硬了|看完|舔屏|万人|牛逼|煞笔|傻逼|卧槽|tm|啊这|哇哦)/,/(会员|VIP|vip|Vip)/</textarea>
+                                                  class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus scrollbar-thin">/.{20,}/,/^\\d{2,4}[-/.]\\d{1,2}[-/.]\\d{1,2}([日号.]*)?$/,/^(?!哈+$)([a-zA-Z\\u4e00-\\u9fa5])\\1{2,}/,/[0-9]+\\.*[0-9]*\\s*(w|万)+\\s*(\\+|个|人|在看)+/,/^[a-z]{6,}$/,/^(?:qwertyuiop|asdfghjkl|zxcvbnm)$/,/^\\d{5,}$/,/^(\\d)\\1{2,}$/,/\\d{1,4}/,/(20[0-3][0-9])/,/(0?[1-9]|1[0-2])月/,/\\d{1,2}[.-]\\d{1,2}/,/[@#&$%^*+\\|/\\-_=<>°◆◇■□●○★☆▼▲♥♦♠♣①②③④⑤⑥⑦⑧⑨⑩]/,/[一二三四五六七八九十百\\d]+刷/,/第[一二三四五六七八九十百\\d]+/,/(全体成员|报到|报道|来啦|签到|刷|打卡|我在|来了|考古|爱了|挖坟|留念|你好|回来|哦哦|重温|复习|重刷|再看|在看|前排|沙发|有人看|板凳|末排|我老婆|我老公|撅了|后排|周目|重看|包养|DVD|同上|同样|我也是|俺也|算我|爱豆|我家爱豆|我家哥哥|加我|三连|币|新人|入坑|补剧|冲了|硬了|看完|舔屏|万人|牛逼|煞笔|傻逼|卧槽|tm|啊这|哇哦)/,/(会员|VIP|vip|Vip)/</textarea>
                                         <button onclick="resetField('BLOCKED_WORDS', '/.{20,}/,/^\\d{2,4}[-/.]\\d{1,2}[-/.]\\d{1,2}([日号.]*)?$/,/^(?!哈+$)([a-zA-Z\\u4e00-\\u9fa5])\\1{2,}/,/[0-9]+\\.*[0-9]*\\s*(w|万)+\\s*(\\+|个|人|在看)+/,/^[a-z]{6,}$/,/^(?:qwertyuiop|asdfghjkl|zxcvbnm)$/,/^\\d{5,}$/,/^(\\d)\\1{2,}$/,/\\d{1,4}/,/(20[0-3][0-9])/,/(0?[1-9]|1[0-2])月/,/\\d{1,2}[.-]\\d{1,2}/,/[@#&$%^*+\\|/\\-_=<>°◆◇■□●○★☆▼▲♥♦♠♣①②③④⑤⑥⑦⑧⑨⑩]/,/[一二三四五六七八九十百\\d]+刷/,/第[一二三四五六七八九十百\\d]+/,/(全体成员|报到|报道|来啦|签到|刷|打卡|我在|来了|考古|爱了|挖坟|留念|你好|回来|哦哦|重温|复习|重刷|再看|在看|前排|沙发|有人看|板凳|末排|我老婆|我老公|撅了|后排|周目|重看|包养|DVD|同上|同样|我也是|俺也|算我|爱豆|我家爱豆|我家哥哥|加我|三连|币|新人|入坑|补剧|冲了|硬了|看完|舔屏|万人|牛逼|煞笔|傻逼|卧槽|tm|啊这|哇哦)/,/(会员|VIP|vip|Vip)/')" class="reset-btn">
                                             <i class="fas fa-undo"></i>
                                         </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">是否在手动选择接口中启用集标题过滤</label>
-                                    <div class="flex items-center">
-                                        <input type="checkbox" id="ENABLE_EPISODE_FILTER" class="custom-checkbox">
-                                        <label for="ENABLE_EPISODE_FILTER" class="custom-checkbox-label">
-                                            <span class="checkbox-square">
-                                                <i class="fas fa-check checkbox-icon"></i>
-                                            </span>
-                                            <span>启用集标题过滤</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">是否启用严格标题匹配模式</label>
-                                    <div class="flex items-center">
-                                        <input type="checkbox" id="STRICT_TITLE_MATCH" class="custom-checkbox">
-                                        <label for="STRICT_TITLE_MATCH" class="custom-checkbox-label">
-                                            <span class="checkbox-square">
-                                                <i class="fas fa-check checkbox-icon"></i>
-                                            </span>
-                                            <span>启用严格匹配</span>
-                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -581,7 +649,7 @@
                                         <label class="block text-sm font-medium text-gray-700 mb-2">分钟内合并去重</label>
                                         <div class="relative">
                                             <input type="number" id="GROUP_MINUTE" value="1" min="0" max="30"
-                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                                   class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                             <button onclick="resetField('GROUP_MINUTE', '1')" class="reset-btn">
                                                 <i class="fas fa-undo"></i>
                                             </button>
@@ -594,7 +662,7 @@
                                         </label>
                                         <div class="relative">
                                             <input type="text" id="COLOR_CYCLE_DANMU_LIST" value="11193542,11513775,14474460,12632297,13484213"
-                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                                   class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                             <button onclick="resetField('COLOR_CYCLE_DANMU_LIST', '11193542,11513775,14474460,12632297,13484213')" class="reset-btn">
                                                 <i class="fas fa-undo"></i>
                                             </button>
@@ -602,69 +670,69 @@
                                     </div>
                                 </div>
                                 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-3">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否将顶部和底部弹幕转换为浮动弹幕</label>
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="CONVERT_TOP_BOTTOM_TO_SCROLL" class="custom-checkbox">
-                                            <label for="CONVERT_TOP_BOTTOM_TO_SCROLL" class="custom-checkbox-label">
-                                                <span class="checkbox-square">
-                                                    <i class="fas fa-check checkbox-icon"></i>
-                                                </span>
-                                                <span>转换为浮动弹幕</span>
-                                            </label>
-                                        </div>
+                                        <input type="checkbox" id="CONVERT_TOP_BOTTOM_TO_SCROLL" class="custom-checkbox">
+                                        <label for="CONVERT_TOP_BOTTOM_TO_SCROLL" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">浮动弹幕模式</div>
+                                                <div class="checkbox-desc">将顶部和底部弹幕转换为浮动弹幕</div>
+                                            </div>
+                                        </label>
                                     </div>
+                                    
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否将彩色弹幕转换为纯白弹幕</label>
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="CONVERT_COLOR_TO_WHITE" class="custom-checkbox">
-                                            <label for="CONVERT_COLOR_TO_WHITE" class="custom-checkbox-label">
-                                                <span class="checkbox-square">
-                                                    <i class="fas fa-check checkbox-icon"></i>
-                                                </span>
-                                                <span>转换为纯白弹幕</span>
-                                            </label>
-                                        </div>
+                                        <input type="checkbox" id="CONVERT_COLOR_TO_WHITE" class="custom-checkbox">
+                                        <label for="CONVERT_COLOR_TO_WHITE" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">纯白弹幕</div>
+                                                <div class="checkbox-desc">将彩色弹幕转换为纯白色</div>
+                                            </div>
+                                        </label>
                                     </div>
-                                </div>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否启用随机彩色弹幕</label>
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="ENABLE_RANDOM_COLOR_DANMU" class="custom-checkbox">
-                                            <label for="ENABLE_RANDOM_COLOR_DANMU" class="custom-checkbox-label">
-                                                <span class="checkbox-square">
-                                                    <i class="fas fa-check checkbox-icon"></i>
-                                                </span>
-                                                <span>启用随机彩色弹幕</span>
-                                            </label>
-                                        </div>
+                                        <input type="checkbox" id="ENABLE_RANDOM_COLOR_DANMU" class="custom-checkbox">
+                                        <label for="ENABLE_RANDOM_COLOR_DANMU" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">随机彩色弹幕</div>
+                                                <div class="checkbox-desc">为弹幕随机分配颜色</div>
+                                            </div>
+                                        </label>
                                     </div>
+                                    
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否启用颜色循环弹幕</label>
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="ENABLE_COLOR_CYCLE_DANMU" checked class="custom-checkbox">
-                                            <label for="ENABLE_COLOR_CYCLE_DANMU" class="custom-checkbox-label">
-                                                <span class="checkbox-square">
-                                                    <i class="fas fa-check checkbox-icon"></i>
-                                                </span>
-                                                <span>启用颜色循环弹幕</span>
-                                            </label>
-                                        </div>
+                                        <input type="checkbox" id="ENABLE_COLOR_CYCLE_DANMU" checked class="custom-checkbox">
+                                        <label for="ENABLE_COLOR_CYCLE_DANMU" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">颜色循环弹幕</div>
+                                                <div class="checkbox-desc">使用预设颜色循环显示</div>
+                                            </div>
+                                        </label>
                                     </div>
-                                </div>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">是否将繁体弹幕转换为简体</label>
-                                    <div class="flex items-center">
+                                    
+                                    <div>
                                         <input type="checkbox" id="DANMU_SIMPLIFIED" checked class="custom-checkbox">
                                         <label for="DANMU_SIMPLIFIED" class="custom-checkbox-label">
                                             <span class="checkbox-square">
-                                                    <i class="fas fa-check checkbox-icon"></i>
+                                                <i class="fas fa-check checkbox-icon"></i>
                                             </span>
-                                            <span>转换为简体</span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">繁转简</div>
+                                                <div class="checkbox-desc">将繁体弹幕转换为简体中文</div>
+                                            </div>
                                         </label>
                                     </div>
                                 </div>
@@ -721,7 +789,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="number" id="RATE_LIMIT_MAX_REQUESTS" value="3" min="0" max="100"
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                         <button onclick="resetField('RATE_LIMIT_MAX_REQUESTS', '3')" class="reset-btn">
                                             <i class="fas fa-undo"></i>
                                         </button>
@@ -759,12 +827,12 @@
                                 </h3>
                             </div>
                             <div class="p-6 space-y-4">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div class="relative">
                                         <label class="block text-sm font-medium text-gray-700 mb-2">搜索结果缓存时间(分钟)</label>
                                         <div class="relative">
                                             <input type="number" id="SEARCH_CACHE_MINUTES" value="1" min="0" max="60"
-                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                                   class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                             <button onclick="resetField('SEARCH_CACHE_MINUTES', '1')" class="reset-btn">
                                                 <i class="fas fa-undo"></i>
                                             </button>
@@ -774,25 +842,29 @@
                                         <label class="block text-sm font-medium text-gray-700 mb-2">弹幕缓存时间(分钟)</label>
                                         <div class="relative">
                                             <input type="number" id="COMMENT_CACHE_MINUTES" value="1" min="0" max="60"
-                                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                                   class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                             <button onclick="resetField('COMMENT_CACHE_MINUTES', '1')" class="reset-btn">
                                                 <i class="fas fa-undo"></i>
                                             </button>
                                         </div>
                                     </div>
+                                </div>
+                                
+                                <div class="space-y-3">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">是否记住手动选择结果</label>
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="REMEMBER_LAST_SELECT" checked class="custom-checkbox">
-                                            <label for="REMEMBER_LAST_SELECT" class="custom-checkbox-label">
-                                                <span class="checkbox-square">
-                                                    <i class="fas fa-check checkbox-icon"></i>
-                                                </span>
-                                                <span>记住选择结果</span>
-                                            </label>
-                                        </div>
+                                        <input type="checkbox" id="REMEMBER_LAST_SELECT" checked class="custom-checkbox">
+                                        <label for="REMEMBER_LAST_SELECT" class="custom-checkbox-label">
+                                            <span class="checkbox-square">
+                                                <i class="fas fa-check checkbox-icon"></i>
+                                            </span>
+                                            <div class="checkbox-text">
+                                                <div class="font-medium">记住手动选择结果</div>
+                                                <div class="checkbox-desc">保存用户的手动选择偏好</div>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
+                                
                                 <div class="relative">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">
                                         用户偏好记忆缓存大小限制
@@ -800,7 +872,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="number" id="MAX_LAST_SELECT_MAP" value="100" min="1" max="1000"
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                         <button onclick="resetField('MAX_LAST_SELECT_MAP', '100')" class="reset-btn">
                                             <i class="fas fa-undo"></i>
                                         </button>
@@ -825,7 +897,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="url" id="PROXY_URL" value="" placeholder="http://proxy-server:port 或 @http://proxy-server"
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                     </div>
                                 </div>
                             </div>
@@ -847,7 +919,7 @@
                                     </label>
                                     <div class="relative">
                                         <input type="password" id="TMDB_API_KEY" value=""
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                     </div>
                                 </div>
                             </div>
@@ -866,28 +938,18 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Upstash Redis REST URL</label>
                                     <div class="relative">
                                         <input type="url" id="UPSTASH_REDIS_REST_URL" value=""
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                     </div>
                                 </div>
                                 <div class="relative">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Upstash Redis REST Token</label>
                                     <div class="relative">
                                         <input type="password" id="UPSTASH_REDIS_REST_TOKEN" value=""
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
+                                               class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus">
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Save Button (Removed for auto-save) -->
-                        <!-- <div class="flex justify-end space-x-4">
-                            <button onclick="discardChanges()" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                                取消更改
-                            </button>
-                            <button onclick="saveConfig()" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors btn-hover">
-                                <i class="fas fa-save mr-2"></i>保存配置
-                            </button>
-                        </div> -->
                     </div>
                 </div>
             </div>
@@ -1073,10 +1135,11 @@
                     element.value = defaultValue;
                 }
                 showToast('info', '字段已重置', `字段 ${fieldId} 已重置为默认值`);
+                // Trigger auto-save after reset
+                autoSaveConfig();
             }
         }
 
-        // Configuration functions
         // Configuration functions
         function loadCurrentConfig() {
             fetch('/api/config')
@@ -1177,12 +1240,6 @@
                 showToast('error', '保存失败', '发生网络错误');
             });
         }
-
-        // Discard changes function is no longer needed with auto-save
-        // function discardChanges() {
-        //     loadCurrentConfig();
-        //     showToast('info', '已重置', '所有更改已被取消');
-        // }
 
         function exportConfig() {
             // Generate .env content with comments
@@ -1289,10 +1346,10 @@
             envContent += `# 默认值：json\n`;
             envContent += `# 可选值：json, xml\n`;
             envContent += `# 说明：\n`;
-            envContent += `#   - json: 返回 JSON 格式的弹幕数据（默认）<br>
-            #   - xml: 返回 XML 格式的弹幕数据（兼容弹弹play等客户端）<br>
-            # 注意：可通过 API 查询参数 ?format=xml 或 ?format=json 覆盖此设置<br>
-            # 示例：GET /api/v2/comment/10001?format=xml\n`;
+            envContent += `#   - json: 返回 JSON 格式的弹幕数据（默认）\n`;
+            envContent += `#   - xml: 返回 XML 格式的弹幕数据（兼容弹弹play等客户端）\n`;
+            envContent += `# 注意：可通过 API 查询参数 ?format=xml 或 ?format=json 覆盖此设置\n`;
+            envContent += `# 示例：GET /api/v2/comment/10001?format=xml\n`;
             envContent += `DANMU_OUTPUT_FORMAT=${document.getElementById('DANMU_OUTPUT_FORMAT').value}\n\n`;
             
             envContent += `# ==================== 限流配置 ====================\n\n`;
@@ -1306,7 +1363,7 @@
             
             envContent += `# 是否在手动选择接口中启用集标题过滤\n`;
             envContent += `# 默认值：false（禁用）\n`;
-Content += `# 可选值：true, false\n`;
+            envContent += `# 可选值：true, false\n`;
             envContent += `ENABLE_EPISODE_FILTER=${document.getElementById('ENABLE_EPISODE_FILTER').checked ? 'true' : 'false'}\n\n`;
             
             envContent += `# ==================== 搜索匹配模式 ====================\n\n`;

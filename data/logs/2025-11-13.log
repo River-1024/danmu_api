@@ -26,3 +26,49 @@
 2025-11-13T16:11:16.641+08:00 [INFO] request url: "http://localhost:9321/favicon.ico"
 2025-11-13T16:11:16.641+08:00 [INFO] request path: /favicon.ico
 2025-11-13T16:11:16.641+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:19.306+08:00 [INFO] request url: "http://localhost:9321/87654321/api/logs"
+2025-11-13T16:55:19.306+08:00 [INFO] request path: /87654321/api/logs
+2025-11-13T16:55:19.306+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:19.306+08:00 [INFO] /api/logs
+2025-11-13T16:55:19.608+08:00 [INFO] request url: "http://localhost:9321/favicon.ico"
+2025-11-13T16:55:19.608+08:00 [INFO] request path: /favicon.ico
+2025-11-13T16:55:19.609+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:20.272+08:00 [INFO] request url: "http://localhost:9321/87654321/api/logs"
+2025-11-13T16:55:20.272+08:00 [INFO] request path: /87654321/api/logs
+2025-11-13T16:55:20.272+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:20.272+08:00 [INFO] /api/logs
+2025-11-13T16:55:20.399+08:00 [INFO] request url: "http://localhost:9321/favicon.ico"
+2025-11-13T16:55:20.399+08:00 [INFO] request path: /favicon.ico
+2025-11-13T16:55:20.399+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:20.735+08:00 [INFO] request url: "http://localhost:9321/87654321/api/logs"
+2025-11-13T16:55:20.735+08:00 [INFO] request path: /87654321/api/logs
+2025-11-13T16:55:20.735+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:20.735+08:00 [INFO] /api/logs
+2025-11-13T16:55:20.863+08:00 [INFO] request url: "http://localhost:9321/favicon.ico"
+2025-11-13T16:55:20.863+08:00 [INFO] request path: /favicon.ico
+2025-11-13T16:55:20.863+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:21.291+08:00 [INFO] request url: "http://localhost:9321/"
+2025-11-13T16:55:21.291+08:00 [INFO] request path: /
+2025-11-13T16:55:21.291+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:21.291+08:00 [INFO] Accessed homepage with repository information
+2025-11-13T16:55:21.526+08:00 [INFO] request url: "http://localhost:9321/"
+2025-11-13T16:55:21.526+08:00 [INFO] request path: /
+2025-11-13T16:55:21.526+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:21.526+08:00 [INFO] Accessed homepage with repository information
+2025-11-13T16:55:21.693+08:00 [INFO] request url: "http://localhost:9321/favicon.ico"
+2025-11-13T16:55:21.693+08:00 [INFO] request path: /favicon.ico
+2025-11-13T16:55:21.694+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:22.182+08:00 [INFO] request url: "http://localhost:9321/"
+2025-11-13T16:55:22.182+08:00 [INFO] request path: /
+2025-11-13T16:55:22.182+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:22.182+08:00 [INFO] Accessed homepage with repository information
+2025-11-13T16:55:22.312+08:00 [INFO] request url: "http://localhost:9321/favicon.ico"
+2025-11-13T16:55:22.313+08:00 [INFO] request path: /favicon.ico
+2025-11-13T16:55:22.313+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:22.467+08:00 [INFO] request url: "http://localhost:9321/"
+2025-11-13T16:55:22.467+08:00 [INFO] request path: /
+2025-11-13T16:55:22.467+08:00 [INFO] client ip: 127.0.0.1
+2025-11-13T16:55:22.467+08:00 [INFO] Accessed homepage with repository information
+2025-11-13T16:55:22.597+08:00 [INFO] request url: "http://localhost:9321/favicon.ico"
+2025-11-13T16:55:22.597+08:00 [INFO] request path: /favicon.ico
+2025-11-13T16:55:22.597+08:00 [INFO] client ip: 127.0.0.1
