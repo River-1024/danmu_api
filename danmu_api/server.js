@@ -6,6 +6,144 @@ const fs = require('fs');
 const dotenv = require('dotenv');
 const yaml = require('js-yaml');
 
+const fsp = fs.promises;
+const LOG_DIR = path.join(__dirname, '..', 'data', 'logs');
+const LOG_FLUSH_INTERVAL_MS = 200;
+const LOG_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+const logWriteQueue = [];
+let logFlushTimer = null;
+let logDirReadyPromise = null;
+let lastLogCleanupAt = 0;
+
+function getLogRetentionDays() {
+  const value = Number(process.env.LOG_RETENTION_DAYS ?? '7');
+  return Number.isNaN(value) ? 7 : value;
+}
+
+function ensureLogDir() {
+  if (!logDirReadyPromise) {
+    logDirReadyPromise = fsp.mkdir(LOG_DIR, { recursive: true }).catch((error) => {
+      logDirReadyPromise = null;
+      throw error;
+    });
+  }
+  return logDirReadyPromise;
+}
+
+function formatLogEntry(entry) {
+  const timestamp = entry?.timestamp || new Date().toISOString();
+  const level = (entry?.level || 'info').toUpperCase();
+  const message = entry?.message ?? '';
+  const line = `${timestamp} [${level}] ${message}\n`;
+  const filePath = path.join(LOG_DIR, `${timestamp.slice(0, 10)}.log`);
+  return { filePath, line };
+}
+
+function flushLogsSync() {
+  if (logFlushTimer) {
+    clearTimeout(logFlushTimer);
+    logFlushTimer = null;
+  }
+  if (!logWriteQueue.length) return;
+
+  const entries = logWriteQueue.splice(0);
+  try {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    const grouped = new Map();
+    for (const entry of entries) {
+      const formatted = formatLogEntry(entry);
+      if (!grouped.has(formatted.filePath)) {
+        grouped.set(formatted.filePath, []);
+      }
+      grouped.get(formatted.filePath).push(formatted.line);
+    }
+    for (const [filePath, lines] of grouped.entries()) {
+      fs.appendFileSync(filePath, lines.join(''), 'utf8');
+    }
+  } catch (error) {
+    console.error('[server] Failed to persist logs before exit:', error.message);
+  }
+}
+
+function maybeCleanupOldLogs() {
+  const retentionDays = getLogRetentionDays();
+  if (!retentionDays || retentionDays <= 0) {
+    return;
+  }
+  const now = Date.now();
+  if (now - lastLogCleanupAt < LOG_CLEANUP_INTERVAL_MS) {
+    return;
+  }
+  lastLogCleanupAt = now;
+
+  fsp.readdir(LOG_DIR)
+    .then((files) => Promise.all(
+      files
+        .filter((file) => file.endsWith('.log'))
+        .map(async (file) => {
+          const match = file.match(/^(\d{4}-\d{2}-\d{2})\.log$/);
+          if (!match) return;
+          const fileDate = new Date(`${match[1]}T00:00:00Z`).getTime();
+          const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
+          if (!Number.isNaN(fileDate) && fileDate < cutoff) {
+            try {
+              await fsp.unlink(path.join(LOG_DIR, file));
+            } catch (error) {
+              if (error.code !== 'ENOENT') {
+                console.error('[server] Failed to delete old log file:', error.message);
+              }
+            }
+          }
+        })
+    ))
+    .catch((error) => {
+      if (error.code !== 'ENOENT') {
+        console.error('[server] Failed to inspect log directory:', error.message);
+      }
+    });
+}
+
+function flushQueuedLogs() {
+  logFlushTimer = null;
+  if (!logWriteQueue.length) return;
+  const entries = logWriteQueue.splice(0);
+
+  (async () => {
+    try {
+      await ensureLogDir();
+      const grouped = new Map();
+      for (const entry of entries) {
+        const formatted = formatLogEntry(entry);
+        if (!grouped.has(formatted.filePath)) {
+          grouped.set(formatted.filePath, []);
+        }
+        grouped.get(formatted.filePath).push(formatted.line);
+      }
+      for (const [filePath, lines] of grouped.entries()) {
+        await fsp.appendFile(filePath, lines.join(''), 'utf8');
+      }
+      maybeCleanupOldLogs();
+    } catch (error) {
+      console.error('[server] Failed to persist logs:', error.message);
+    }
+  })();
+}
+
+function scheduleLogFlush() {
+  if (!logFlushTimer) {
+    logFlushTimer = setTimeout(flushQueuedLogs, LOG_FLUSH_INTERVAL_MS);
+  }
+}
+
+function persistLogEntry(entry) {
+  logWriteQueue.push(entry);
+  scheduleLogFlush();
+}
+
+global.__logPersist = persistLogEntry;
+process.on('beforeExit', flushLogsSync);
+
 // 配置文件路径在项目根目录（server.js 的上一级目录）
 const envPath = path.join(__dirname, '..', '.env');
 const yamlPath = path.join(__dirname, '..', 'config.yaml');
@@ -190,6 +328,7 @@ function setupEnvWatcher() {
 
 // 优雅关闭：清理文件监听器
 function cleanupWatcher() {
+  flushLogsSync();
   if (envWatcher) {
     console.log('[server] Closing file watcher...');
     envWatcher.close();

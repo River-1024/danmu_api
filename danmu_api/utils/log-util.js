@@ -23,6 +23,16 @@ export function log(level, ...args) {
 
   globals.logBuffer.push({ timestamp, level, message });
   if (globals.logBuffer.length > globals.MAX_LOGS) globals.logBuffer.shift();
+
+  const persist = typeof globalThis !== 'undefined' ? globalThis.__logPersist : undefined;
+  if (typeof persist === 'function') {
+    try {
+      persist({ timestamp, level, message });
+    } catch (error) {
+      console.error('[log-util] Failed to persist log entry:', error.message);
+    }
+  }
+
   console[level](...args);
 }
 
